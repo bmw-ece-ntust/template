@@ -1,0 +1,4 @@
+HARBOR_USER = your-username      
+HARBOR_PASSWORD = your-password  
+IMAGE = test-rapp        
+TAG = 1.0.0            
