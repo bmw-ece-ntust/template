@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 # Defaults
 REGISTRY ?= 192.168.8.84
-PROJECT  ?= library
+PROJECT  ?= bmw-ece-ntust
 
 # Load per-dev overrides
 -include make.local
