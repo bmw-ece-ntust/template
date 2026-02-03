@@ -1,620 +1,585 @@
-<h1 align="center">Installation Guideline - Project Name</h1>
-<hr>
-
-## Project description
-
-**Project Name:** [Replace with actual project name]
-
-**Description:** A comprehensive solution for [specific use case]. This project provides [key functionality] and enables users to [main benefits].
-
-**Key Features:**
-
-- Feature 1: [Brief description]
-- Feature 2: [Brief description]
-- Feature 3: [Brief description]
-
-**Target Users:** [Developers/Researchers/System Administrators/etc.]
-
-> [!CAUTION]
-> Make this document private by default. Only make it public after publishing the project.
->
-> Request access with the GitHub admin in our group.
-
-> [!NOTE]
-> **Purpose of Installation Guide:**
-> This guide focuses on setup, configuration, and getting the system running on your local environment or target deployment system.
-
-## Table of Contents
-
-to allow other people to quickly navigate especially long or detailed READMEs.
-
-- [Project description](#project-description)
-- [Table of Contents](#table-of-contents)
-- [Remote Access Methods](#remote-access-methods)
-  - [SSH](#ssh)
-  - [Anydesk](#anydesk)
-- [Action Items](#action-items)
-- [System Architecture](#system-architecture)
-- [Repository Structure](#repository-structure)
-- [Minimum Specification Requirements](#minimum-specification-requirements)
-- [Table of Paramaters](#table-of-paramaters)
-  - [Inputs Parameters](#inputs-parameters)
-- [Message Sequence Chart (MSC)](#message-sequence-chart-msc)
-  - [User Authentication Flow (O-RAN O1 Interface)](#user-authentication-flow-o-ran-o1-interface)
-  - [Cell Configuration Flow (O-RAN F1 Interface)](#cell-configuration-flow-o-ran-f1-interface)
-  - [Configuration](#configuration)
-  - [Installation Steps](#installation-steps)
-- [Post-Installation Verification](#post-installation-verification)
-- [Troubleshooting](#troubleshooting)
-  - [Common Issues and Solutions](#common-issues-and-solutions)
-- [Additional Resources](#additional-resources)
-
-## Remote Access Methods
-
-### SSH
-
-```shell
-ssh user@<IP address>
-```
-
-### Anydesk
-
-```markdown
-ID: # Anydesk ID / Public IP / private IP with on VPN access
-Pass: <password>
-```
-
-## Action Items
-
-Write your installation/integration plan & status in here:
-
-| Step                         | Command/Action                                               | Description                                        | Status |
-| ---------------------------- | ------------------------------------------------------------ | -------------------------------------------------- | ------ |
-| Clone the repository         | `git clone https://github.com/your-username/your-repo.git` | Clone the project repository to your local machine | ✅     |
-| Install dependencies         | `npm install`                                              | Install all necessary dependencies                 | ✅     |
-| Set up environment variables | Create a `.env` file and refer to `.env.example`         | Configure environment variables                    | ⌛️   |
-| Run the application          | `npm start`                                                | Start the application                              | ❌     |
-| Open in browser              | Navigate to `http://localhost:3000`                        | Open the application in your web browser           |        |
-
-## System Architecture
-
-**Important Components to Include in System Architecture (O-RAN O-DU Architecture Pattern):**
-
-1. **O-RAN Interfaces** - F1, E2, O1, FAPI interfaces with specific protocols
-2. **Functional Blocks** - L2/L3 protocol stack components (RLC, MAC, PDCP, RRC)
-3. **Thread Architecture** - Multiple processing threads for different functional blocks
-4. **Message Exchanges** - SCTP, EGTP, ASN.1 codecs for inter-module communication
-5. **Management Interfaces** - O1 for configuration, alarms, and performance management
-6. **IP Addressing** - Clear network topology following O-RAN deployment patterns
-
-```mermaid
-graph TD
-    subgraph O-DU
-        subgraph DU APP
-            Config_Handler(Config<br/>Handler)
-            subgraph Hidden_Container_DU_Manager_UE_Manager
-                DU_Manager(DU<br/>Manager)
-                UE_Manager(UE<br/>Manager)
-            end
-            O1(O1)
-            SCTP_Manager(SCTP<br/>Manager)
-            EGTP_Manager(EGTP<br/>Manager)
-            ASN1_Codecs(ASN.1<br/>Codecs)
-
-            Config_Handler -- (internal) --> DU_Manager
-            Config_Handler -- (internal) --> UE_Manager
-        end
-
-        subgraph RLC_Layer
-            RLC_UL[5G NR RLC UL]
-            RLC_DL[5G NR RLC DL]
-        end
-
-        subgraph MAC_Layer
-            MAC[5g NR MAC]
-            SCH[5g NR SCH]
-            Lower_MAC(Lower MAC)
-        end
-
-        subgraph Utility_Functions[O-DU Utility and Common Functions]
-            %% This subgraph represents the "O-DU Utility and Common Functions" block.
-            %% Since no internal components are shown, it's just a container.
-            Common_Utils_Placeholder[" "]
-            %% Placeholder for the box itself - moved to its own line
-        end
-    end
-
-    %% Styling (Approximating colors from the image)
-    classDef du_app_blue fill:#3399FF,stroke:#333,stroke-width:1px;
-    classDef o1_red fill:#CC3333,stroke:#333,stroke-width:1px;
-    classDef sctp_manager_orange fill:#FF9933,stroke:#333,stroke-width:1px;
-    classDef egtp_manager_green fill:#66CC66,stroke:#333,stroke-width:1px;
-    classDef asn1_codecs_white fill:#FFFFFF,stroke:#333,stroke-width:1px;
-    classDef rlc_gold fill:#CC9900,stroke:#333,stroke-width:1px;
-    classDef mac_dark_green fill:#339966,stroke:#333,stroke-width:1px;
-    classDef lower_mac_purple fill:#9966CC,stroke:#333,stroke-width:1px;
-    classDef utility_white fill:#F0F0F0,stroke:#333,stroke-width:1px;
-    classDef odu_border fill:#DDDDDD,stroke:#333,stroke-width:2px,rx:5px,ry:5px;
-
-    class DU_APP du_app_blue;
-    class Config_Handler,DU_Manager,UE_Manager du_app_blue;
-    class O1 o1_red;
-    class SCTP_Manager sctp_manager_orange;
-    class EGTP_Manager egtp_manager_green;
-    class ASN1_Codecs asn1_codecs_white;
-
-    class RLC_Layer rlc_gold;
-    class RLC_UL,RLC_DL rlc_gold;
-
-    class MAC_Layer mac_dark_green;
-    class MAC,SCH mac_dark_green;
-    class Lower_MAC lower_mac_purple;
-
-    class Utility_Functions utility_white;
-    class Common_Utils_Placeholder utility_white;
-
-    class O-DU odu_border;
-
-    %% Positioning to mimic the layout (manual adjustments might be needed in a live viewer)
-    subgraph O-DU
-        direction LR
-        subgraph Col1
-            direction TB
-            DU APP
-            Utility_Functions
-        end
-        subgraph Col2
-            direction TB
-            RLC_Layer
-            MAC_Layer
-        end
-        Col1---Col2 invisible
-    end
-
-    %% Specific connections based on typical O-DU architecture (inferred, not explicit in image)
-    %% These connections are illustrative and represent common data/control flows.
-    %% If the image implies no direct arrows between these high-level blocks,
-    %% you can remove them or make them invisible.
-
-    %% DU APP internal flows
-    SCTP_Manager -- (control) --> DU_Manager
-    EGTP_Manager -- (data) --> DU_Manager
-    O1 -- (config) --> Config_Handler
-    ASN1_Codecs -- (utility) --> SCTP_Manager
-    ASN1_Codecs -- (utility) --> EGTP_Manager
-
-    %% DU APP to RLC/MAC
-    DU_Manager --> RLC_UL
-    DU_Manager --> RLC_DL
-    RLC_UL --> MAC
-    RLC_DL --> MAC
-    MAC --> SCH
-    MAC --> Lower_MAC
-
-    %% Lower_MAC's conceptual connection to PHY (not shown in this image but implied by O-DU)
-    %% Lower_MAC -.-> ODU_PHY[O-DU Low/PHY];
-```
-
-## Repository Structure
-
-> [!NOTE]
->
-> 1. Add `.gitignore` file with C/C++ and O-RAN specific patterns.
-> 2. Add Apache 2.0 LICENSE (standard for O-RAN projects).
-> 3. Create O-RAN compliant source structure following O-DU High architecture.
-> 4. Structure code following the [System Architecture](#system-architecture) with thread-based organization.
-
-```
-o-ran-o-du-l2/
-├── src/                           # Main source code directory
-│   ├── du_app/                    # DU Application Layer
-│   │   ├── du_mgr.c              # DU Manager implementation
-│   │   ├── du_ue_mgr.c           # UE Manager implementation
-│   │   ├── du_cfg.c              # Configuration Handler
-│   │   ├── du_f1ap_msg_hdl.c     # F1AP message handling
-│   │   ├── du_e2ap_msg_hdl.c     # E2AP message handling
-│   │   └── du_sctp.c             # SCTP interface handling
-│   ├── 5gnrmac/                   # 5G NR MAC Layer
-│   │   ├── lwr_mac_fsm.c         # Lower MAC FSM
-│   │   ├── lwr_mac_handle_phy.c  # PHY interface handling
-│   │   ├── mac_slot_ind.c        # Slot indication processing
-│   │   ├── mac_upr_inf_api.c     # Upper interface APIs
-│   │   └── mac_ue_mgr.c          # MAC UE management
-│   ├── 5gnrrlc/                   # 5G NR RLC Layer
-│   │   ├── kw_ul_ex_ms.c         # RLC UL main functions
-│   │   ├── kw_dl_ex_ms.c         # RLC DL main functions
-│   │   ├── kw_amm_ul.c           # AM mode UL processing
-│   │   ├── kw_amm_dl.c           # AM mode DL processing
-│   │   └── kw_uim.c              # Upper interface management
-│   ├── 5gnrsch/                   # 5G NR Scheduler
-│   │   ├── sch.c                 # Main scheduler functions
-│   │   ├── sch_slot_ind.c        # Slot indication handling
-│   │   ├── sch_ue_mgr.c          # UE management in scheduler
-│   │   ├── sch_common.c          # Common scheduler functions
-│   │   └── sch_utils.c           # Scheduler utilities
-│   ├── cm/                        # Common modules
-│   │   ├── common_def.c          # Common definitions
-│   │   ├── lrg.c                 # Layer management
-│   │   ├── du_app_rlc_inf.c      # DU-RLC interface
-│   │   └── du_app_mac_inf.c      # DU-MAC interface
-│   ├── codec_utils/               # ASN.1 Codecs
-│   │   ├── F1AP/                 # F1AP ASN.1 codecs
-│   │   ├── E2AP/                 # E2AP ASN.1 codecs
-│   │   ├── RRC/                  # RRC ASN.1 codecs
-│   │   └── common/               # Common codec utilities
-│   ├── o1/                        # O1 Interface Module
-│   │   ├── o1_client/            # O1 client implementation
-│   │   ├── ves/                  # VES agent
-│   │   ├── alarm/                # Alarm management
-│   │   └── config/               # Configuration management
-│   └── mt/                        # Multi-threading utilities
-│       ├── mt_ss.c               # System services
-│       └── mt_id.c               # Thread identification
-├── build/                         # Build system
-│   ├── scripts/                  # Build scripts
-│   │   ├── build_odu.sh         # Main build script
-│   │   └── cleanup.sh           # Cleanup script
-│   ├── odu/                      # ODU build artifacts
-│   └── makefile                  # Main makefile
-├── config/                        # Configuration files
-│   ├── startup_config.xml        # Initial configuration
-│   ├── fapi_config.json         # FAPI configuration
-│   └── odu_config.xml           # ODU configuration
-├── docs/                          # Documentation
-│   ├── overview.md               # Architecture overview
-│   ├── user-guide.md            # User guide
-│   ├── developer-guide.md       # Developer guide
-│   └── api-docs/                # API documentation
-├── tests/                         # Test framework
-│   ├── scripts/                  # Test scripts
-│   ├── stub/                     # Stub implementations
-│   │   ├── cu_stub/             # CU stub
-│   │   ├── ric_stub/            # RIC stub
-│   │   └── phy_stub/            # PHY stub
-│   └── integration/              # Integration tests
-├── tools/                         # Development tools
-│   ├── fapi_decoder/            # FAPI message decoder
-│   ├── memory_analyzer/         # Memory leak detection
-│   └── log_analyzer/            # Log analysis tools
-├── bin/                           # Binary executables
-│   ├── odu                      # Main ODU executable
-│   ├── cu_stub                  # CU stub executable
-│   └── ric_stub                 # RIC stub executable
-├── .gitignore                     # Git ignore patterns
-├── LICENSE                        # Apache 2.0 License
-├── README.md                      # Project overview
-├── CONTRIBUTING.md                # Contribution guidelines
-└── CHANGELOG.md                   # Change log
-```
-
-## Minimum Specification Requirements
-
-| Component        | Requirement               |
-| ---------------- | ------------------------- |
-| Operating System | Ubuntu 22.04 or higher    |
-| CPU              | 2 GHz dual-core processor |
-| Memory           | 4 GB RAM                  |
-| GCC Version      | 7.5 or higher             |
-| Python Version   | 3.6 or higher             |
-| Kubernetes       | 1.18 or higher            |
-
-## Table of Paramaters
-
-> [!NOTE]
-> **Parameter Comparison Guidelines:**
->
-> 1. **Standards Compliance** - All vendor implementations must maintain backward compatibility with 3GPP standards
-> 2. **Performance Enhancement** - Vendor-specific features often provide performance improvements beyond standard requirements
-> 3. **Interoperability** - Ensure vendor-specific parameters don't compromise network interoperability
-> 4. **Documentation** - Always refer to the latest version of specifications as standards evolve
-> 5. **Testing** - Validate vendor-specific implementations against 3GPP test cases
-
-### Inputs Parameters
-
-| Parameter Name                  | Description                                    | 3GPP Reference                                                                      | 3GPP Standard     | Ericsson                                                                                   | Nokia                                                                              | Huawei                                                                           | Samsung                                                         |
-| ------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| **Cell ID**               | Unique identifier for each cell in the network | [TS 36.211 Section 6.11](https://www.3gpp.org/ftp/Specs/archive/36_series/36.211/)     | nrCellIdentity    | [Cell Identity (CI)](https://www.ericsson.com/en/ran)                                         | Cell_ID                                                                            | Cell_Identifier                                                                  | CellId                                                          |
-| **Tracking Area Code**    | Area identifier for location management        | [TS 23.003 Section 19.4.2.3](https://www.3gpp.org/ftp/Specs/archive/23_series/23.003/) | trackingAreaCode  | TAC_Enhanced                                                                               | [TAC_Extended](https://www.nokia.com/networks/mobile-networks/airscale-radio-access/) | TAC_Advanced                                                                     | TAC_Optimized                                                   |
-| **PLMN ID**               | Public Land Mobile Network identifier          | [TS 23.003 Section 2.2](https://www.3gpp.org/ftp/Specs/archive/23_series/23.003/)      | plmnIdentity      | PLMN_ID                                                                                    | PLMN_Identifier                                                                    | [PLMN_Enhanced](https://carrier.huawei.com/en/products/wireless-network/small-cell) | PLMN_Code                                                       |
-| **Bandwidth**             | Radio channel bandwidth allocation             | [TS 36.104 Section 5.6](https://www.3gpp.org/ftp/Specs/archive/36_series/36.104/)      | dlBandwidth       | BW_Config                                                                                  | Bandwidth_Setting                                                                  | BW_Parameter                                                                     | [Extended_BW](https://www.samsung.com/us/business/networks/)       |
-| **Transmission Power**    | Maximum transmission power per antenna         | [TS 36.101 Section 6.2.5](https://www.3gpp.org/ftp/Specs/archive/36_series/36.101/)    | maxTxPower        | TxPower_Max                                                                                | Power_Config                                                                       | PowerControl_Enhanced                                                            | [TxPwr_Adaptive](https://www.zte.com.cn/global/products/wireless/) |
-| **Antenna Configuration** | Number of transmit/receive antenna elements    | [TS 36.213 Section 7.1](https://www.3gpp.org/ftp/Specs/archive/36_series/36.213/)      | antennaPortsCount | [Massive_MIMO](https://www.ericsson.com/en/portfolio/networks/ericsson-radio-system/antennas) | MIMO_Config                                                                        | Antenna_Array                                                                    | MIMO_Setup                                                      |
-
-Output Parameters
-
-| Parameter Name                  | Description                                   | 3GPP Reference                                                                   | 3GPP Standard       | Ericsson                                     | Nokia                                                                              | Huawei                                                                            | Samsung                                                                |
-| ------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- | ------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| **RSRP**                  | Reference Signal Received Power measurement   | [TS 36.214 Section 5.1.1](https://www.3gpp.org/ftp/Specs/archive/36_series/36.214/) | rsrpResult          | RSRP_Enhanced                                | [RSRP_Precise](https://www.nokia.com/networks/technologies/self-organizing-networks/) | RSRP_Advanced                                                                     | RSRP_Optimized                                                         |
-| **RSRQ**                  | Reference Signal Received Quality measurement | [TS 36.214 Section 5.1.3](https://www.3gpp.org/ftp/Specs/archive/36_series/36.214/) | rsrqResult          | RSRQ_Adaptive                                | RSRQ_Extended                                                                      | [RSRQ_Intelligent](https://carrier.huawei.com/en/solutions/ran-solutions/son)        | RSRQ_Smart                                                             |
-| **SINR**                  | Signal to Interference plus Noise Ratio       | [TS 36.214 Section 4](https://www.3gpp.org/ftp/Specs/archive/36_series/36.214/)     | sinrResult          | SINR_Optimized                               | SINR_Advanced                                                                      | SINR_Enhanced                                                                     | [AI_SINR](https://www.samsung.com/us/business/networks/private-networks/) |
-| **Throughput**            | Maximum data transmission rate                | [TS 36.306 Table 4.1A](https://www.3gpp.org/ftp/Specs/archive/36_series/36.306/)    | dlThroughput        | DL_Throughput                                | UL_DL_Rate                                                                         | Throughput_Max                                                                    | [CA_Throughput](https://www.zte.com.cn/global/about/news/20200520-2)      |
-| **Latency**               | End-to-end packet transmission delay          | [TS 22.261 Section 6.1](https://www.3gpp.org/ftp/Specs/archive/22_series/22.261/)   | packetDelayBudget   | [Ultra_Latency](https://www.ericsson.com/en/5g) | Latency_Optimized                                                                  | Delay_Minimized                                                                   | Latency_Reduced                                                        |
-| **Handover Success Rate** | Percentage of successful handover procedures  | [TS 36.331 Section 5.5](https://www.3gpp.org/ftp/Specs/archive/36_series/36.331/)   | handoverSuccessRate | HO_Success_Rate                              | [ML_Handover_Rate](https://www.nokia.com/networks/solutions/network-automation/)      | Smart_HO_Rate                                                                     | Adaptive_HO_Rate                                                       |
-| **Cell Load**             | Physical Resource Block usage percentage      | [TS 36.213 Section 6](https://www.3gpp.org/ftp/Specs/archive/36_series/36.213/)     | prbUtilizationDL    | Cell_Load_PRB                                | PRB_Usage                                                                          | [Dynamic_Load](https://carrier.huawei.com/en/solutions/ran-solutions/load-balancing) | Load_Balance                                                           |
-
-## Message Sequence Chart (MSC)
-
-> [!NOTE]
-> **MSC Should Include:**
->
-> 1. **Actors/Components** - All participating systems and users
-> 2. **Message Flow** - Sequential communication between components
-> 3. **Timing** - Order of operations and dependencies
-> 4. **Error Handling** - Alternative flows and error scenarios
-> 5. **Data Validation** - Authentication and authorization steps
-
-### User Authentication Flow (O-RAN O1 Interface)
-
-```mermaid
-sequenceDiagram
-    participant SMO as SMO/OAM (192.168.100.10)
-    participant O1 as O1 Module (10.0.2.40:830)
-    participant DU_APP as DU APP (10.0.2.10:8080)
-    participant CONFIG as Config Handler (10.0.2.10:8081)
-    participant NETCONF as Netconf Session (10.0.2.40:830)
-    participant VES as VES Agent (10.0.2.40:8443)
-    participant ALARM as Alarm Manager (10.0.2.40)
-
-    SMO->>+NETCONF: NETCONF Authentication Request
-    NETCONF->>+O1: Validate Credentials
-    O1->>+DU_APP: Check DU Status via Unix Socket
-    DU_APP-->>-O1: DU Status Response
-  
-    alt Valid SMO Credentials
-        O1->>+CONFIG: Load Configuration Context
-        CONFIG-->>-O1: Configuration Loaded
-        O1-->>-NETCONF: Authentication Success
-        NETCONF-->>-SMO: 200 OK + Session ID
-        O1->>+ALARM: Log Authentication Success
-        ALARM-->>-O1: Alarm Stored
-        VES->>SMO: VES Event - Authentication Success
-    else Invalid Credentials
-        O1-->>-NETCONF: Authentication Failed
-        NETCONF-->>-SMO: 401 Unauthorized
-        O1->>+ALARM: Log Authentication Failure
-        ALARM-->>-O1: Alarm Stored
-        VES->>SMO: VES Event - Authentication Failed
-    end
-```
-
-### Cell Configuration Flow (O-RAN F1 Interface)
-
-```mermaid
-sequenceDiagram
-    participant SMO as SMO/OAM (192.168.100.10)
-    participant O1 as O1 Module (10.0.2.40:830)
-    participant DU_APP as DU APP (10.0.2.10:8080)
-    participant SCTP as SCTP Handler (10.0.2.10)
-    participant OCU as O-CU-CP (10.0.1.10:38472)
-    participant MAC as 5G NR MAC (10.0.2.30:9010)
-    participant SCH as 5G NR SCH (10.0.2.30:9011)
-    participant L_MAC as Lower MAC (10.0.2.30)
-    participant PHY as O-DU Low (10.0.3.10:50001)
-
-    SMO->>+O1: NETCONF Cell Config Request
-    O1->>+DU_APP: Cell Configuration via Unix Socket
-    DU_APP->>+SCTP: F1 Setup Request (Cell List)
-    SCTP->>+OCU: SCTP/F1-C F1 Setup Request
-    OCU-->>-SCTP: F1 Setup Response (Cells to Activate)
-    SCTP-->>-DU_APP: F1 Setup Response
-  
-    DU_APP->>+MAC: Cell Configuration Request
-    MAC->>+SCH: Configure Scheduler
-    SCH-->>-MAC: Scheduler Configured
-    MAC->>+L_MAC: Configure Lower MAC
-    L_MAC->>+PHY: FAPI CONFIG.request
-    PHY-->>-L_MAC: FAPI CONFIG.response
-    L_MAC-->>-MAC: Lower MAC Configured
-    MAC-->>-DU_APP: Cell Configuration Response
-  
-    DU_APP->>+SCTP: gNB DU Config Update
-    SCTP->>+OCU: F1AP gNB DU Config Update
-    OCU-->>-SCTP: gNB DU Config Update ACK
-    SCTP-->>-DU_APP: Config Update ACK
-  
-    DU_APP->>+MAC: Cell Start Request
-    MAC->>+L_MAC: Start Cell Request
-    L_MAC->>+PHY: FAPI START.request
-    PHY-->>-L_MAC: FAPI START.indication
-    PHY->>L_MAC: FAPI SLOT.indication (continuous)
-    L_MAC->>MAC: Slot Indications
-    MAC->>DU_APP: Cell Started Indication
-    DU_APP-->>-O1: Cell Configuration Complete
-    O1-->>-SMO: NETCONF Response - Cell Configured
-  
-    Note over SMO,PHY: Cell is now UP and broadcasting SSB/SIB1
-### UE Attach Flow (O-RAN F1/E2 Interfaces)
-
-```mermaid
-sequenceDiagram
-    participant UE as UE Device
-    participant RU as O-RU (10.0.3.20)
-    participant PHY as O-DU Low (10.0.3.10)
-    participant L_MAC as Lower MAC (10.0.2.30)
-    participant MAC as 5G NR MAC (10.0.2.30:9010)
-    participant RLC as 5G NR RLC (10.0.2.20:9001)
-    participant DU_APP as DU APP (10.0.2.10:8080)
-    participant SCTP as SCTP Handler (10.0.2.10)
-    participant OCU as O-CU-CP (10.0.1.10:38472)
-    participant RIC as Near-RT RIC (192.168.100.20:36422)
-
-    Note over UE,RIC: RACH Procedure
-    UE->>RU: Random Access Preamble
-    RU->>PHY: Fronthaul - RACH Detection
-    PHY->>L_MAC: FAPI RACH.indication
-    L_MAC->>MAC: RACH Indication
-    MAC->>RLC: RACH Data
-    RLC->>DU_APP: Initial UL RRC Message
-  
-    DU_APP->>+SCTP: F1AP Initial UL RRC Message Transfer
-    SCTP->>+OCU: SCTP/F1-C Initial UL RRC Message
-    OCU-->>-SCTP: RRC Setup (via F1AP DL RRC Message Transfer)
-    SCTP-->>-DU_APP: RRC Setup Message
-  
-    DU_APP->>RLC: RRC Setup Message
-    RLC->>MAC: RRC Setup for Scheduling
-    MAC->>L_MAC: Schedule RRC Setup
-    L_MAC->>PHY: FAPI DL_TTI.request (RRC Setup)
-    PHY->>RU: Fronthaul - RRC Setup
-    RU->>UE: RRC Setup
-  
-    Note over UE,RIC: UE Context Setup
-    OCU->>+SCTP: F1AP UE Context Setup Request
-    SCTP->>+DU_APP: UE Context Setup Request
-    DU_APP->>MAC: Create UE Context
-    DU_APP->>RLC: Create UE Context
-    MAC-->>DU_APP: UE Context Created
-    RLC-->>DU_APP: UE Context Created
-    DU_APP-->>-SCTP: UE Context Setup Response
-    SCTP-->>-OCU: F1AP UE Context Setup Response
-  
-    Note over UE,RIC: E2 Reporting
-    DU_APP->>+SCTP: E2AP RIC Indication (UE Attached)
-    SCTP->>+RIC: SCTP/E2AP RIC Indication
-    RIC-->>-SCTP: E2AP Acknowledgment
-    SCTP-->>-DU_APP: E2 Indication Sent
-  
-    Note over UE,RIC: UE is now RRC Connected and ready for data transfer
-```
-
-### Configuration
-
-**Environment Variables:**
-Create a `.env` file in the root directory with the following variables:
-
-```bash
-# Database Configuration
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=your_database_name
-DB_USER=your_username
-DB_PASSWORD=your_password
-
-# Application Settings
-APP_PORT=3000
-APP_DEBUG=false
-```
-
-**Configuration Files:**
-
-- `config/settings.json`: Contains application-specific settings
-- Refer to `config/.env.example` for all available environment variables
-
-### Installation Steps
-
-Installation is the next section in an effective README. Tell other users how to install your project locally. Optionally, include a gif to make the process even more clear for other people.
-
-1. **Clone the repository:**
-
-   ```sh
-   git clone https://github.com/your-username/your-repo.git
-   cd your-repo
-   ```
-2. **Install dependencies:**
-
-   ```sh
-   pip install -r requirements.txt 
-   ```
-3. **Set up environment variables:**
-
-   Create a `.env` file in the root directory and add the necessary environment variables. Refer to `.env.example` for guidance.
-4. **Run the application:**
-
-   ```sh
-   python3 app.py
-   ```
-
-## Post-Installation Verification
-
-Follow these steps to verify your installation was successful:
-
-1. **Check Application Status:**
-
-   ```bash
-   # Check if the application is running
-   ps aux | grep app.py
-   ```
-
-   **Expected Result:** You should see the process running with PID and resource usage information.
-2. **Test Basic Functionality:**
-
-   ```bash
-   # Test API endpoint (if applicable)
-   curl http://localhost:3000/health
-   ```
-
-   **Expected Result:** Response should return `{"status": "OK", "timestamp": "..."}` or similar.
-3. **Verify Database Connection:**
-
-   ```bash
-   # Run database connectivity test
-   python3 -c "from src.main import test_db_connection; test_db_connection()"
-   ```
-
-   **Expected Result:** Output should confirm successful database connection.
-
-## Troubleshooting
-
-### Common Issues and Solutions
-
-1. **Issue: Port already in use**
-
-   **Error Message:** `Address already in use: 3000`
-
-   **Solution:**
-
-   ```bash
-   # Find process using the port
-   sudo lsof -i :3000
-   # Kill the process (replace PID with actual process ID)
-   kill -9 <PID>
-   ```
-2. **Issue: Python dependencies not found**
-
-   **Error Message:** `ModuleNotFoundError: No module named 'module_name'`
-
-   **Solution:**
-
-   ```bash
-   # Reinstall dependencies
-   pip install -r requirements.txt
-   # Or install specific package
-   pip install module_name
-   ```
-3. **Issue: Permission denied errors**
-
-   **Error Message:** `Permission denied: '/path/to/file'`
-
-   **Solution:**
-
-   ```bash
-   # Fix file permissions
-   chmod 755 /path/to/file
-   # Or run with appropriate user permissions
-   sudo python3 app.py
-   ```
-
-## Additional Resources
-
-**Documentation:**
-
-- [Official Project Documentation](https://your-project-docs.com)
-- [API Reference Guide](https://your-project-api.com)
-- [Configuration Reference](https://your-project-config.com)
-
-**Community Support:**
-
-- [GitHub Issues](https://github.com/your-username/your-repo/issues)
-- [Stack Overflow Tag](https://stackoverflow.com/questions/tagged/your-project)
-- [Discord Community](https://discord.gg/your-project)
-
-**Contact:**
-
-- **Maintainer:** Your Name (<your.email@example.com>)
-- **Support Team:** <support@your-project.com>
-- **Emergency Contact:** +1-xxx-xxx-xxxx (for critical issues only)
+<h1 align="center">Project Documentation - Guideline</h1>
 
 ---
 
 > [!NOTE]
-> This installation guide is regularly updated. For the latest version, check the [GitHub repository](https://github.com/your-username/your-repo).
+> This `README.md` follows the **SOP project documentation template** and should be kept in sync:
+> https://github.com/bmw-ece-ntust/SOP/blob/master/project-documentation.md
+
+> [!CAUTION]
+> **Confidentiality Notice:**
+> Keep this document **private** by default. Publish only after paper acceptance.
+> Request repository access from the GitHub admin.
+
+---
+
+> [!NOTE]
+> **Documentation Structure:**
+>
+> - **Installation Guide**: System setup, configuration, and deployment procedures
+> - **User Guide**: Operating instructions for the deployed system
+> - **Project Documentation**: Technical architecture, use cases, MSC, flowcharts, and class diagrams with links to installation guides
+
+**Documentation Hierarchy:**
+
+```mermaid
+graph TD
+    PD[Project Documentation]
+    
+    subgraph "Component A"
+        IG-A[Installation Guide A]
+        UG-A[User Guide A]
+    end
+
+    subgraph "Component B"
+        IG-B[Installation Guide B]
+        UG-B[User Guide B]
+    end
+
+    subgraph "Component C"
+        IG-C[Installation Guide C]
+        UG-C[User Guide C]
+    end
+
+    IG-A --> PD
+    IG-B --> PD
+    IG-C --> PD
+```
+
+## Table of Contents
+
+> [!TIP]
+> **Auto-Generate Table of Contents:**
+> Use [Markdown All in One](https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one#table-of-contents) extension in VS Code for automatic TOC generation.
+
+- [Table of Contents](#table-of-contents)
+- [Introduction](#introduction)
+- [Execution Status](#execution-status)
+- [Minimum Requirements](#minimum-requirements)
+- [System Architecture](#system-architecture)
+  - [Software Requirements and Versions](#software-requirements-and-versions)
+  - [Components Explanation](#components-explanation)
+    - [SMO Layer - O-RAN SC \[L Release\]](#smo-layer---o-ran-sc-l-release)
+    - [Near-RT RIC - FlexRIC \[v1.0.0\]](#near-rt-ric---flexric-v100)
+    - [Central Unit - OAI \[2024.w40\]](#central-unit---oai-2024w40)
+    - [Distributed Unit - OAI \[2024.w40\]](#distributed-unit---oai-2024w40)
+    - [Radio Unit - USRP B210](#radio-unit---usrp-b210)
+    - [User Equipment](#user-equipment)
+- [Use Case Diagram](#use-case-diagram)
+- [Message Sequence Chart (MSC)](#message-sequence-chart-msc)
+  - [UC2: Handover UEs to Neighbor Cell](#uc2-handover-ues-to-neighbor-cell)
+  - [UC3: Shutdown Cell](#uc3-shutdown-cell)
+  - [UC4: Activate Cell](#uc4-activate-cell)
+- [Flowchart](#flowchart)
+  - [UC1: Monitor Traffic Load](#uc1-monitor-traffic-load)
+  - [UC2: Handover UEs to Neighbor Cell](#uc2-handover-ues-to-neighbor-cell-1)
+  - [UC3: Shutdown Cell](#uc3-shutdown-cell-1)
+  - [UC4: Activate Cell](#uc4-activate-cell-1)
+- [Class Diagram](#class-diagram)
+- [System Parameters](#system-parameters)
+- [References](#references)
+- [Additional Links](#additional-links)
+- [Contact](#contact)
+
+## Introduction
+
+> [!NOTE]
+> **Guideline:** Define the research background, problem statement, contributions, and challenges. Structure the introduction to be suitable for academic paper publication.
+>
+> **Required Content:**
+>
+> 1. **Background**: Describe the problem domain and current state-of-the-art
+> 2. **Importance**: Explain why solving this problem matters (technical and practical impact)
+> 3. **Contribution**: Present your proposed solution and key innovations
+> 4. **Challenges**: Identify implementation challenges and how you address them
+>
+> **Citation Management:**
+>
+> - Maintain all references in a `.bib` file for bibliography management
+> - Use [Pandoc](https://pandoc.org/) to cite references from the `.bib` file in Markdown
+> - The `.bib` file can be directly reused for paper writing in LaTeX
+
+**Write-up (replace this section):**
+
+1. **Background**:
+    - What problem in O-RAN / RIC / AI-RAN are you solving?
+    - What is the baseline (papers / existing xApps/rApps / O-RAN SC components)?
+
+2. **Importance**:
+    - Why it matters (impact on KPIs, operations, energy, QoE, automation)?
+
+3. **Contribution**:
+    - What do you implement (rApp and/or xApp, E2SM type, A1 policy type, O1/VES usage)?
+    - What is new vs baseline?
+
+4. **Challenges**:
+    - Integration (E2/A1/O1), dataset availability, reproducibility, testbed limitations
+
+## Execution Status
+
+**Guideline:** Track implementation progress with a status table showing all major development and integration steps. Use status icons (✅ ⏳ ❌) to indicate progress. Include specific dates, outcomes, and error descriptions where applicable.
+
+**Example:**
+
+> [!NOTE]
+> **Status Icons:**
+> - ✅ Completed successfully
+> - ⏳ In progress / Pending
+> - ❌ Error / Failed (with explanation)
+
+| Step                                  | Status | Timeline   | Execution Status / Notes |
+| ------------------------------------- | ------ | ---------- | ------------------------ |
+| Define research scope + baseline      | ⏳     | YYYY-MM-DD |                          |
+| Define dataset / testbed plan         | ⏳     | YYYY-MM-DD |                          |
+| Implement rApp (optional)             |        | YYYY-MM-DD |                          |
+| Implement xApp (optional)             |        | YYYY-MM-DD |                          |
+| Containerize (Docker)                 | ✅     | 2026-02-03 | See docs/continerized.md |
+| Deploy (Helm)                         | ✅     | 2026-02-03 | See docs/continerized.md |
+| Experiments + evaluation              |        | YYYY-MM-DD |                          |
+| Paper writing (figures/tables)        |        | YYYY-MM-DD |                          |
+
+## Minimum Requirements
+
+> [!NOTE]
+> **Guideline:** Specify the minimum hardware and software requirements needed to deploy and run the project. Include CPU, GPU, memory, storage, and network requirements.
+>
+> **Required Content:**
+>
+> 1. **Hardware Requirements**: CPU, GPU, RAM, storage, network adapters
+> 2. **Software Requirements**: OS, kernel version, runtime dependencies, tools
+> 3. **Component-Specific Requirements**: List requirements for each major component (SMO, RIC, DU, RU, etc.)
+> 4. **Version Specifications**: Include exact versions for reproducibility
+
+**Example:**
+
+| Component       | Requirement                  |
+|-----------------|------------------------------|
+| CPU             | 2 GHz dual-core processor    |
+| GPU             | NVIDIA GTX 1060 or equivalent|
+| Memory (RAM)    | 4 GB RAM                     |
+| Storage         | 20 GB available disk space   |
+| Network         | 100 Mbps Ethernet connection |
+
+## System Architecture
+
+> [!NOTE]
+> **Draw.io Files Management:**
+>
+> If you create system architecture diagrams using draw.io:
+>
+> - Store the raw `.drawio` files in the `./docs/drawio` folder of the GitHub repository
+> - Export diagrams as PNG/SVG and embed them in the documentation
+> - Keep `draw.io` files versioned for easy updates and maintenance
+> - Use consistent naming: `<project-name>.drawio`
+
+---
+> [!NOTE]
+> **Guideline:** Draw the end-to-end system architecture using Mermaid diagrams. For each component, provide:
+>
+> - A **brief component name** with version
+> - A **paragraph explanation** of its functionality
+> - **Hyperlinks** to corresponding installation guides (use placeholder links)
+>
+> This format enables easy adaptation into academic paper publications.
+
+**Example:**
+
+```mermaid
+graph TB
+    subgraph SMO["SMO / Non-RT RIC"]
+        rApp["rApp (optional)\n(long-term control)"]
+        O1["O1 / VES (optional)"]
+    end
+
+    subgraph NearRT["Near-RT RIC"]
+        xApp["xApp (optional)\n(real-time control)"]
+        E2Term["E2 Termination"]
+    end
+
+    RAN["RAN (CU/DU) + E2 Agent"]
+
+    SMO -->|A1 (policy)| NearRT
+    NearRT -->|E2 (KPM/RC)| RAN
+    SMO -->|O1 (config/telemetry)| RAN
+```
+
+### Software Requirements and Versions
+
+| Component        | Implementation | Version/Release | Purpose |
+| --------------- | -------------- | --------------- | ------- |
+| SMO / Non-RT RIC | O-RAN SC        | <fill>          | Service management + long-term control |
+| Near-RT RIC      | O-RAN SC / FlexRIC | <fill>        | Real-time control plane for xApps |
+| RAN (CU/DU)      | OAI / vendor    | <fill>          | RAN nodes providing KPIs + control hooks |
+| This repo        | Python/C++/etc.  | <fill>          | Your rApp/xApp logic |
+| Docker           | Docker Engine    | <fill>          | Reproducible runtime |
+| Kubernetes       | K8s              | <fill>          | Deployment platform |
+
+> [!NOTE]
+> **O-RAN Version Naming Convention:**
+>
+> - **O-RAN Alliance Releases**: Named alphabetically (A, B, C, D, E, F, G, H, I, J, K, L, M...)
+> - **O-RAN SC (Software Community)**: Follows Alliance releases with specific dates (e.g., L Release = 2024.06)
+> - **OAI Releases**: Version numbers (v1.x, v2.x) with weekly tags (e.g., 2024.w40 = week 40 of 2024)
+> - **Current Latest**: L Release (June 2024), M Release expected in December 2024
+
+### Components Explanation
+
+#### [SMO Layer - O-RAN SC [L Release]](installation-guide-link)
+
+<Replace this section with your project’s actual SMO/Non-RT RIC components. Keep it short and link to your install guides.>
+
+- **[SMO Platform](smo-installation-link)**: <What platform? what it hosts?>
+- **[Non-RT RIC / rApp](rapp-installation-link)**: <What policy/ML/optimization runs here?>
+- **[O1 (VES/NETCONF)](o1-installation-link)**: <What telemetry/config flows?>
+- **[Observability](observability-installation-link)**: <Grafana/Prometheus/ELK/etc.>
+
+#### [Near-RT RIC - FlexRIC [v1.0.0]](flexric-installation-link)
+
+<Add component explanation>
+
+#### [Central Unit - OAI [2024.w40]](oai-cu-installation-link)
+
+<Add component explanation>
+
+#### [Distributed Unit - OAI [2024.w40]](oai-du-installation-link)
+
+<Add component explanation>
+
+#### [Radio Unit - USRP B210](usrp-installation-link)
+
+<Add component explanation>
+
+#### [User Equipment](ue-installation-link)
+
+<Add component explanation>
+
+## Use Case Diagram
+
+> [!NOTE]
+> **Guideline:** Define the system features and use cases that fulfill project requirements. Use Mermaid diagrams to illustrate actors, use cases, and their relationships. Each use case will be detailed in the MSC section.
+>
+> **Required Content:**
+>
+> 1. **Use Case Diagram**: Mermaid diagram showing actors and their interactions with the system
+> 2. **Actor Definitions**: Identify all external entities (users, systems, components)
+> 3. **Use Case Definitions**: List all functional capabilities with clear names
+> 4. **Relationships**: Show interactions between actors and use cases
+
+**Example:**
+
+```mermaid
+graph LR
+    %% Actors
+    NetworkOperator[Network Operator]
+    
+    %% Use Cases
+    subgraph "Energy Saving System"
+        UC1[Monitor<br/>Traffic Load]
+        UC2[Handover UEs<br/>to Neighbor Cell]
+        UC3[Shutdown<br/>Cell]
+        UC4[Activate<br/>Cell]
+    end
+    
+    %% Relationships
+    NetworkOperator -->|Configure Policy| UC1
+    NetworkOperator -->|View Status| UC1
+    
+    UC1 -->|Low Traffic| UC2
+    UC2 -->|UEs Moved| UC3
+    UC1 -->|High Traffic| UC4
+    
+    %% Styling
+    classDef actor fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#000
+    classDef usecase fill:#fff9c4,stroke:#f57f17,stroke-width:2px,color:#000
+    
+    class NetworkOperator actor
+    class UC1,UC2,UC3,UC4 usecase
+```
+
+## Message Sequence Chart (MSC)
+
+> [!NOTE]
+> **Guideline:** Illustrate component interactions for each use case using sequence diagrams. Focus on message flow across system interfaces (O1, A1, E2, F1 for O-RAN). MSC shows **component communication**, while flowcharts show **algorithm logic**.
+>
+> **Required Content:**
+>
+> 1. **Sequence Diagrams**: Mermaid diagrams showing message exchanges between components
+> 2. **Interface Labels**: Include interface names (O1, A1, E2, F1, eCPRI, Uu)
+> 3. **Message Content**: Document message parameters and data structures
+> 4. **Timing**: Show order of operations and dependencies
+> 5. **Error Scenarios**: Include alternative flows and error handling where relevant
+
+**Example:**
+
+### UC2: Handover UEs to Neighbor Cell
+
+Describe the message flow for your use case across O-RAN interfaces (E2/A1/O1/F1).
+
+```mermaid
+sequenceDiagram
+    participant rApp as rApp (optional)
+    participant xApp as xApp (optional)
+    participant RIC as Near-RT RIC
+    participant RAN as CU/DU (E2 Agent)
+
+    RAN->>RIC: E2 Indication (KPM)
+    RIC->>xApp: KPI report
+    xApp->>RIC: RIC Control Request (action)
+    RIC->>RAN: E2 Control
+    RAN-->>RIC: Control Ack
+```
+
+### UC3: Shutdown Cell
+
+<Add MSC for UC3 (replace)>
+
+### UC4: Activate Cell
+
+<Add MSC for UC4 (replace)>
+
+## Flowchart
+
+> [!NOTE]
+> **Guideline:** Define the logic and decision-making algorithms for each use case. Flowcharts illustrate **algorithm logic** (conditional branches, loops, decision criteria), while MSC shows **component interactions**.
+>
+> **Required Content:**
+>
+> 1. **Decision Points**: Show conditional branches using diamond shapes
+> 2. **Logic Flow**: Include if/else logic and loops with clear conditions
+> 3. **Threshold Values**: Document criteria and parameters for decisions
+> 4. **Error Handling**: Show alternative paths for failure scenarios
+> 5. **Clear Styling**: Use consistent colors and ensure text readability
+
+**Example:**
+
+### UC1: Monitor Traffic Load
+
+```mermaid
+flowchart TD
+    Start([Start])
+    Observe[Collect KPIs / inputs]
+    Decide{Decision / policy}
+    Act[Control action]
+    Log[Log + metrics + traces]
+    Start --> Observe --> Decide --> Act --> Log --> Observe
+```
+
+### UC2: Handover UEs to Neighbor Cell
+
+<Add flowchart for UC2 (optional)>
+
+### UC3: Shutdown Cell
+
+<Add flowchart for UC3 (optional)>
+
+### UC4: Activate Cell
+
+<Add flowchart for UC4 (optional)>
+
+## Class Diagram
+
+> [!NOTE]
+> **Guideline:** Define the software architecture using Object-Oriented Programming (OOP) principles. Include classes, attributes (following 3GPP standards), methods, and relationships (inheritance, composition, aggregation).
+> Include the parameters defined on the [System Parameters](#system-parameters) table.
+>
+> **Required Content:**
+>
+> 1. **Classes**: Define main classes following OOP design patterns
+> 2. **Attributes**: Use 3GPP parameter names (e.g., `DRB.PrbUtilDL`, `RRC.ConnectedUE`)
+> 3. **Methods**: Define functions that execute MSC call-flows
+> 4. **Relationships**: Show inheritance (is-a), composition (has-a), aggregation, dependencies
+> 5. **Access Modifiers**: Use `-` for private, `+` for public, `#` for protected
+> 6. **Data Types**: Specify types (String, Integer, Float, List, etc.)
+>
+> **OOP Principles:**
+>
+> - **Encapsulation**: Group related data and methods in classes
+> - **Abstraction**: Use interfaces or abstract classes where applicable
+> - **Inheritance**: Show class hierarchies (e.g., `BaseXApp` → `EnergySavingXApp`)
+> - **Polymorphism**: Define overridable methods
+
+## System Parameters
+
+> [!NOTE]
+> **Guideline:** Define the input and output parameters used in the system, following 3GPP specifications. These parameters should be reflected in the class diagram attributes.
+>
+> **Required Content:**
+>
+> 1. **Input Parameters**: System inputs (e.g., KPIs from E2 interface, A1 policies)
+> 2. **Output Parameters**: System outputs (e.g., control decisions, cell status)
+> 3. **3GPP Standards**: Reference TS specifications for each parameter with hyperlinks
+> 4. **Parameter Table**: Include columns for Category, Parameter, Type, 3GPP Spec, Unit, Description, Range, Source/Destination
+
+**Example:**
+
+| Category               | Parameter              | Type    | Unit       | Spec / Ref | Description |
+| ---------------------- | ---------------------- | ------- | ---------- | ---------- | ----------- |
+| **E2 KPM Inputs**      | `DRB.PrbUtilDL`        | Float   | %          | TS 28.552 | Downlink PRB utilization |
+| **E2 RC Outputs**      | `controlAction`        | Struct  | -          | E2SM RC    | Control action payload |
+| **A1 Policy Inputs**   | `policyThreshold`      | Float   | %          | A1AP       | Policy threshold |
+
+**Example:**
+
+```mermaid
+classDiagram
+    %% ========================================
+    %% Core System Components (from System Architecture)
+    %% ========================================
+    
+    %% Near-RT RIC - Energy Saving xApp (Main Controller)
+    class EnergySavingXApp {
+        <<Near-RT RIC xApp>>
+        %% E2 KPM Inputs (from System Parameters)
+        -float drbPrbUtilDL
+        -float drbPrbUtilUL
+        -int rrcConnectedUE
+        %% A1 Policy Inputs
+        -float prbThresholdLow
+        -float prbThresholdHigh
+        -int durationThresholdSec
+        %% Methods (from Use Cases)
+        +monitorTrafficLoad() TrafficStatus
+        +initiateHandover(cellId: String) boolean
+        +shutdownCell(cellId: String) boolean
+        +activateCell(cellId: String) boolean
+    }
+    
+    %% Central Unit (CU)
+    class CentralUnit {
+        <<OAI 2024.w40>>
+        -String cuId
+        -int rrcConnectedUE
+        %% E2 RC Outputs
+        +Struct handoverCmd
+        +String targetCellId
+        +executeHandover(ueId: String, targetCell: String) boolean
+        +releaseUEContext(ueId: String) void
+    }
+    
+    %% Distributed Unit (DU)
+    class DistributedUnit {
+        <<OAI 2024.w40>>
+        -String duId
+        %% E2 KPM Inputs
+        +float drbPrbUtilDL
+        +float drbPrbUtilUL
+        +int rrcConnectedUE
+        %% E2 RC Outputs
+        +Enum cellActivationCmd
+        +activateCell() boolean
+        +deactivateCell() boolean
+        +reportKPM() KPMReport
+    }
+    
+    %% User Equipment
+    class UserEquipment {
+        <<Quectel RM500Q-GL>>
+        -String ueId
+        %% Radio Measurements
+        +int rsrp
+        +int rsrq
+        +int sinr
+        +sendMeasurementReport() MeasurementReport
+    }
+    
+    %% ========================================
+    %% Data Classes (from System Parameters)
+    %% ========================================
+    
+    class KPMReport {
+        <<E2SM-KPM>>
+        +String cellId
+        +long timestamp
+        +float drbPrbUtilDL
+        +float drbPrbUtilUL
+        +int rrcConnectedUE
+    }
+    
+    class TrafficStatus {
+        +String cellId
+        +float avgPrbUtil
+        +int activeUEs
+        +boolean lowTraffic
+        +boolean highTraffic
+    }
+    
+    class MeasurementReport {
+        +String ueId
+        +int rsrp
+        +int rsrq
+        +int sinr
+    }
+    
+    %% ========================================
+    %% Relationships
+    %% ========================================
+    
+    %% E2 Interface Connections
+    EnergySavingXApp "1" -- "1" CentralUnit : E2 Interface
+    EnergySavingXApp "1" -- "1" DistributedUnit : E2 Interface
+    
+    %% F1 Interface
+    CentralUnit "1" -- "1" DistributedUnit : F1 Interface
+    
+    %% Uu Interface
+    DistributedUnit "1" -- "*" UserEquipment : Uu Interface
+    
+    %% Data Flow
+    DistributedUnit ..> KPMReport : generates
+    EnergySavingXApp ..> KPMReport : processes
+    EnergySavingXApp ..> TrafficStatus : analyzes
+    UserEquipment ..> MeasurementReport : generates
+```
+
+## References
+
+> [!NOTE]
+> **Guideline:** Use IEEE citation style for all references. Cite references in the text using numerical format [1], [2], etc., and list them in order of appearance at the end of the document.
+>
+> **Citation Format:**
+>
+> - In-text citations: Use square brackets with numbers [1], [2], [3]
+> - Multiple citations: [1], [2] or [1]–[3] for ranges
+> - References list: Number sequentially in order of first appearance
+>
+> **For Pandoc Conversion:**
+>
+> - Create a `references.bib` file with BibTeX entries
+> - Use Pandoc with IEEE CSL: `pandoc document.md --bibliography=references.bib --citeproc --csl=ieee.csl -o output.pdf`
+> - Download `ieee.csl` from: https://github.com/citation-style-language/styles/blob/master/ieee.csl
+
+**Example References (IEEE Format):**
+
+[1] 3GPP, "Management and orchestration; 5G performance measurements," 3rd Generation Partnership Project (3GPP), Technical Specification TS 28.552 V18.5.0, 2024. [Online]. Available: https://www.3gpp.org/ftp/Specs/archive/28_series/28.552/
+
+[2] 3GPP, "NR; NR and NG-RAN Overall description; Stage-2," 3rd Generation Partnership Project (3GPP), Technical Specification TS 38.300 V18.0.0, 2024. [Online]. Available: https://www.3gpp.org/ftp/Specs/archive/38_series/38.300/
+
+[3] 3GPP, "NR; Radio Resource Control (RRC) protocol specification," 3rd Generation Partnership Project (3GPP), Technical Specification TS 38.331 V18.4.0, 2024. [Online]. Available: https://www.3gpp.org/ftp/Specs/archive/38_series/38.331/
+
+[4] 3GPP, "Management and orchestration; Generic management services," 3rd Generation Partnership Project (3GPP), Technical Specification TS 28.532 V18.5.0, 2024. [Online]. Available: https://www.3gpp.org/ftp/Specs/archive/28_series/28.532/
+
+[5] O-RAN Alliance, "O-RAN.WG2.A1AP-v06.00: O-RAN A1 interface: Application Protocol," O-RAN Alliance, Technical Specification, 2024. [Online]. Available: https://specifications.o-ran.org/
+
+[6] O-RAN Alliance, "O-RAN.WG3.E2AP-v03.01: O-RAN E2 Application Protocol," O-RAN Alliance, Technical Specification, 2024. [Online]. Available: https://specifications.o-ran.org/
+
+[7] O-RAN Software Community, "O-RAN Software Community L Release," 2024. [Online]. Available: https://wiki.o-ran-sc.org/display/ORAN/L+Release. [Accessed: Oct. 24, 2024].
+
+[8] EURECOM, "OpenAirInterface 5G RAN Implementation," Version 2024.w40, 2024. [Online]. Available: https://gitlab.eurecom.fr/oai/openairinterface5g
+
+---
+
+## Additional Links
+
+- SOP template (source of truth): https://github.com/bmw-ece-ntust/SOP/blob/master/project-documentation.md
+- Sync script (downloads SOP into this repo): scripts/sync_sop_project_documentation.sh
+- Containerization + Helm tutorial: docs/continerized.md
+- Helm chart template: helm/template-app
+- User guide (project-specific): docs/USER-GUIDE.md
+
+---
+
+## Contact
+
+- **Maintainer:** Your Name (<your.email@example.com>)
+- **Support Team:** <support@your-project.com>
+- **Emergency Contact:** +1-xxx-xxx-xxxx (for critical issues only)

@@ -1,0 +1,7 @@
+1) The service should be reachable inside the cluster on port {{ .Values.service.port }}.
+
+2) To access it locally (port-forward):
+   kubectl port-forward svc/{{ include "template-app.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+
+3) Test:
+   curl http://localhost:{{ .Values.service.port }}/health

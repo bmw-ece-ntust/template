@@ -1,11 +1,15 @@
-    # Use an official lightweight Python image
-    FROM python:3.12-slim
+## Simple reference container image for this template.
+##
+## - Runs the example Python service in `src/main.py`.
+## - Exposes a minimal HTTP health endpoint at `/health`.
+FROM python:3.12-slim
 
-    # Set the working directory inside the container
-    WORKDIR /app
+WORKDIR /app
 
-    # Copy the Python script into the container's working directory
-    COPY src/main.py .
+ENV PYTHONUNBUFFERED=1
 
-    # Specify the command to run when the container starts
-    CMD ["python", "app.py"]
+COPY src/main.py ./main.py
+
+EXPOSE 8080
+
+CMD ["python", "main.py"]
