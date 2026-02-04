@@ -1,0 +1,4 @@
+# rApp template runtime deps
+#
+# This follows the same pattern as O-RAN SC nonrtric-rapp-healthcheck:
+# keep Python dependencies near the script entrypoint under `src/`.

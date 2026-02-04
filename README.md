@@ -3,8 +3,8 @@
 ---
 
 > [!NOTE]
-> This `README.md` follows the **SOP project documentation template** and should be kept in sync:
-> https://github.com/bmw-ece-ntust/SOP/blob/master/project-documentation.md
+> 1. This `README.md` follows the [**SOP project documentation template**](https://github.com/bmw-ece-ntust/SOP/blob/master/project-documentation.md) and should be kept in sync.
+> 2. Your project research performance will be scored by LLMs following the KPI of our research project.
 
 > [!CAUTION]
 > **Confidentiality Notice:**
@@ -571,9 +571,9 @@ classDiagram
 ## Additional Links
 
 - SOP template (source of truth): https://github.com/bmw-ece-ntust/SOP/blob/master/project-documentation.md
-- Sync script (downloads SOP into this repo): scripts/sync_sop_project_documentation.sh
+- Sync script (downloads SOP into this repo): docs/upstream/sync_sop_project_documentation.sh
 - Containerization + Helm tutorial: docs/continerized.md
-- Helm chart template: helm/template-app
+- Helm chart template: test/usecases/healthcheck/scriptversion/helm/template-app
 - User guide (project-specific): docs/USER-GUIDE.md
 
 ---

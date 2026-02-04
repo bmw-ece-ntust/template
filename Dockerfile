@@ -1,15 +1,24 @@
 ## Simple reference container image for this template.
 ##
-## - Runs the example Python service in `src/main.py`.
+## - Runs the example rApp service (Python) under `src/main.py`.
 ## - Exposes a minimal HTTP health endpoint at `/health`.
+
+# Align structure with O-RAN SC `nonrtric-rapp-healthcheck`:
+# - `src/requirements.txt` beside the entrypoint script
+# - `WORKDIR /src`
 FROM python:3.12-slim
 
-WORKDIR /app
+WORKDIR /src
 
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+	PYTHONUNBUFFERED=1
 
-COPY src/main.py ./main.py
+COPY src/requirements.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY ./src .
 
 EXPOSE 8080
 
-CMD ["python", "main.py"]
+ENTRYPOINT ["python", "main.py"]
+CMD []

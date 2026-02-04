@@ -1,44 +1,46 @@
+"""Minimal rApp-style service entrypoint (composition root).
+
+This repo keeps the O-RAN SC `nonrtric-rapp-healthcheck` convention:
+- runnable `src/main.py`
+- deps next to it in `src/requirements.txt`
+
+Unlike a single-file demo, this entrypoint wires a small Clean/Hexagonal
+structure under `src/rapp/`:
+- domain: pure logic
+- application: use-cases + ports
+- adapters: HTTP and other integrations
+"""
+
 from __future__ import annotations
 
-import json
-import os
-import time
-from http.server import BaseHTTPRequestHandler, HTTPServer
+import argparse
+
+from rapp.adapters.http.server import serve_http
+from rapp.config.settings import Settings
+from rapp.domain.services import HealthService
+from rapp.infrastructure.logging import configure_logging
 
 
-class _Handler(BaseHTTPRequestHandler):
-	def do_GET(self) -> None:  # noqa: N802 (BaseHTTPRequestHandler naming)
-		if self.path not in ("/", "/health"):
-			self.send_response(404)
-			self.send_header("Content-Type", "application/json")
-			self.end_headers()
-			self.wfile.write(json.dumps({"status": "NOT_FOUND"}).encode("utf-8"))
-			return
-
-		self.send_response(200)
-		self.send_header("Content-Type", "application/json")
-		self.end_headers()
-
-		payload = {
-			"status": "OK",
-			"service": os.getenv("SERVICE_NAME", "template-app"),
-			"timestamp": int(time.time()),
-		}
-		self.wfile.write(json.dumps(payload).encode("utf-8"))
-
-	def log_message(self, fmt: str, *args: object) -> None:
-		# Keep logs concise for container usage.
-		print(f"[http] {self.address_string()} - {fmt % args}")
+def parse_args(defaults: Settings) -> Settings:
+    parser = argparse.ArgumentParser(prog="rapp-template")
+    parser.add_argument("--host", default=defaults.host)
+    parser.add_argument("--port", default=defaults.port, type=int)
+    parser.add_argument("--service-name", default=defaults.service_name)
+    parser.add_argument("--version", action="version", version="%(prog)s 0.1")
+    args = parser.parse_args()
+    return Settings(host=args.host, port=args.port, service_name=args.service_name)
 
 
 def main() -> None:
-	host = os.getenv("HOST", "0.0.0.0")
-	port = int(os.getenv("PORT", "8080"))
+    configure_logging()
+    settings = parse_args(Settings.from_env())
 
-	server = HTTPServer((host, port), _Handler)
-	print(f"Serving on http://{host}:{port} (health: /health)")
-	server.serve_forever()
+    # Domain service(s) wired into application ports.
+    health_service = HealthService(service_name=settings.service_name)
+
+    # Adapters.
+    serve_http(settings, health_port=health_service)
 
 
 if __name__ == "__main__":
-	main()
+    main()

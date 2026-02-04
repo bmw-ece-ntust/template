@@ -20,5 +20,5 @@ affinity: {}
 podAnnotations: {}
 
 env:
-  SERVICE_NAME: template-app
-  PORT: "8080"
+  RAPP_SERVICE_NAME: template-app
+  RAPP_PORT: "8080"

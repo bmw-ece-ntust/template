@@ -1,1 +1,13 @@
 make.local
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Build artifacts
+dist/
+build/
+
+# macOS
+.DS_Store

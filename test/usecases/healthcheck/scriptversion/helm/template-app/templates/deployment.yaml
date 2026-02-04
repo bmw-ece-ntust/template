@@ -27,10 +27,14 @@ spec:
               containerPort: {{ .Values.service.port }}
               protocol: TCP
           env:
+            - name: RAPP_SERVICE_NAME
+              value: {{ .Values.env.RAPP_SERVICE_NAME | quote }}
+            - name: RAPP_PORT
+              value: {{ .Values.env.RAPP_PORT | quote }}
             - name: SERVICE_NAME
-              value: {{ .Values.env.SERVICE_NAME | quote }}
+              value: {{ .Values.env.RAPP_SERVICE_NAME | quote }}
             - name: PORT
-              value: {{ .Values.env.PORT | quote }}
+              value: {{ .Values.env.RAPP_PORT | quote }}
           livenessProbe:
             httpGet:
               path: /health

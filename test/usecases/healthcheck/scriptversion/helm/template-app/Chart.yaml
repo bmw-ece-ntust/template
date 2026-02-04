@@ -4,3 +4,7 @@ description: Minimal Helm chart for the repo template (example rApp/xApp-style s
 type: application
 version: 0.1.0
 appVersion: "0.1.0"
+annotations:
+
+  template.bmw-ece-ntust.org/purpose: "rapp-template"
+  template.bmw-ece-ntust.org/docs: "docs/architecture, docs/operations"

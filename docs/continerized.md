@@ -28,6 +28,12 @@ docker build -t template-app:dev .
 docker run --rm -p 8080:8080 -e SERVICE_NAME=template-app template-app:dev
 ```
 
+Recommended (rApp-style env var prefix):
+
+```bash
+docker run --rm -p 8080:8080 -e RAPP_SERVICE_NAME=template-app -e RAPP_PORT=8080 template-app:dev
+```
+
 ### Verify
 
 ```bash
@@ -40,35 +46,7 @@ Expected (example):
 {"status":"OK","service":"template-app","timestamp":1738540000}
 ```
 
-Tip: you can also reuse the existing health-check script:
-
-```bash
-export HEALTHCHECK_URL="http://localhost:8080/health"
-./scripts/health_check.sh
-```
-
-## 2) Push image to Harbor (optional)
-
-If your lab uses Harbor, this repo already includes a helper:
-
-1) Create `make.local` (do not commit secrets):
-
-```makefile
-HARBOR_USER = your-username
-HARBOR_PASSWORD = your-password
-IMAGE = template-app
-TAG   = 0.1.0
-```
-
-2) Push:
-
-```bash
-make build-push
-```
-
-This uses [scripts/image-build-push.sh](../scripts/image-build-push.sh) and supports custom registry/project settings.
-
-## 3) Kubernetes: load the image into a local cluster (kind example)
+## 2) Kubernetes: load the image into a local cluster (kind example)
 
 If you use **kind**, images built locally are not automatically available inside the cluster.
 
@@ -77,17 +55,18 @@ kind create cluster
 kind load docker-image template-app:dev
 ```
 
-## 4) Helm: deploy the chart
+## 3) Helm: deploy the chart
 
-This repo includes a minimal Helm chart at [helm/template-app](../helm/template-app).
+This repo includes a minimal Helm chart at
+[`test/usecases/healthcheck/scriptversion/helm/template-app`](../test/usecases/healthcheck/scriptversion/helm/template-app).
 
 ### Lint and render templates
 
 These do not require a cluster:
 
 ```bash
-helm lint ./helm/template-app
-helm template template-app ./helm/template-app \
+helm lint ./test/usecases/healthcheck/scriptversion/helm/template-app
+helm template template-app ./test/usecases/healthcheck/scriptversion/helm/template-app \
   --set image.repository=template-app \
   --set image.tag=dev
 ```
@@ -95,7 +74,7 @@ helm template template-app ./helm/template-app \
 ### Install into a cluster
 
 ```bash
-helm install template-app ./helm/template-app \
+helm install template-app ./test/usecases/healthcheck/scriptversion/helm/template-app \
   --set image.repository=template-app \
   --set image.tag=dev
 ```
@@ -113,13 +92,13 @@ curl http://localhost:8080/health
 helm uninstall template-app
 ```
 
-## 5) Helm: package the chart (share with students)
+## 4) Helm: package the chart (share with students)
 
 To publish or share a packaged chart artifact:
 
 ```bash
 mkdir -p dist/helm
-helm package ./helm/template-app -d dist/helm
+helm package ./test/usecases/healthcheck/scriptversion/helm/template-app -d dist/helm
 ```
 
 If you want a simple static Helm repo (e.g., GitHub Pages), generate an index:
