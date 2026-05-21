@@ -24,7 +24,14 @@ def stats_html(settings: Settings, payload: dict[str, object]) -> str:
 
 
 def make_handler(settings: Settings, *, health_port) -> type[BaseHTTPRequestHandler]:
-    """Create a request handler bound to app dependencies."""
+    """Create a request handler bound to app dependencies.
+
+    :param settings: Application settings (host, port, service name).
+    :param health_port: Any object satisfying
+        :class:`~rapp.application.ports.HealthPort`.
+    :return: A :class:`~http.server.BaseHTTPRequestHandler` subclass wired
+        to the provided dependencies.
+    """
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:  # noqa: N802
