@@ -1,4 +1,13 @@
-# rApp template runtime deps
+# rApp template runtime dependencies
 #
 # This follows the same pattern as O-RAN SC nonrtric-rapp-healthcheck:
-# keep Python dependencies near the script entrypoint under `src/`.
+# keep Python dependencies next to the script entrypoint under `src/`.
+#
+# Dependency rationale
+#   requests  — HTTP client for O-RAN interface adapters (O1/SDNC, R1/SME,
+#               R1/ICS, A1/A1PMS).  The only transport used in production
+#               rApp code; raw HTTP (BaseHTTPRequestHandler) is reserved for
+#               simulator trigger endpoints (ns-3, VIAVI).
+
+requests>=2.32
+

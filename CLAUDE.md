@@ -1,196 +1,28 @@
-# CLAUDE.md — Static Knowledge Snapshot
+# CLAUDE.md — Project Rules & LLM Session Protocol
 
-> **Purpose:** This file is a static knowledge snapshot for LLMs.
-> It describes the repository structure, conventions, terminology, and
-> external links as of the last update.  Do **not** log session activity
-> or prompting history here.
-
----
-
-## Project Overview
-
-This repository is a **research rApp template** that follows the
-[O-RAN SC `nonrtric-rapp-healthcheck`](https://gerrit.o-ran-sc.org/r/admin/repos/nonrtric/plt/rappmanager)
-layout.  It provides a minimal, runnable skeleton for BMW Lab (NTUST ECE)
-research projects that target the O-RAN Non-RT RIC platform.
-
-The application wires a small **Clean / Hexagonal Architecture** under
-`src/rapp/`, and ships platform-agnostic design-pattern stubs
-(`src/core/`, `src/factories/`) so research extensions can be bolted on
-without touching the core transport layer.
+> **Purpose:** Behavior rules for Claude Code sessions.  Static snapshot of
+> conventions, file list, and architectural constraints.
+> Never log session activity here; that belongs in `MEMORY.md`.
 
 ---
 
-## Repository Layout
+## Claude Behavior
 
-```
-template/
-├── CLAUDE.md                          ← this file
-├── Dockerfile                         ← multi-stage Python 3.12-slim image; WORKDIR /src
-├── README.md                          ← SOP project-documentation template guide
-├── config/
-│   └── .env.example                   ← annotated env-var reference (copy → .env)
-├── docs/
-│   ├── README.md                      ← doc-structure overview
-│   ├── USER-GUIDE.md                  ← end-user operating instructions
-│   ├── continerized.md                ← Docker + Helm deployment tutorial
-│   ├── api/
-│   │   └── .gitkeep                   ← placeholder: OpenAPI / AsyncAPI specs go here
-│   ├── drawio/
-│   │   └── .gitkeep                   ← placeholder: architecture draw.io diagrams
-│   └── upstream/
-│       └── sync_sop_project_documentation.sh  ← script that syncs SOP upstream docs
-├── simulation/
-│   └── .gitkeep                       ← placeholder: ns-3 / VIAVI scenario scripts
-├── src/
-│   ├── main.py                        ← composition root; wires all layers; CLI entry
-│   ├── requirements.txt               ← runtime deps (empty by default — stdlib only)
-│   ├── core/
-│   │   ├── __init__.py
-│   │   ├── models/
-│   │   │   └── __init__.py            ← KpiReport (3GPP TS 28.552), PolicyDecision enum
-│   │   └── strategies/
-│   │       └── __init__.py            ← OptimizationStrategy ABC, ThresholdBasedStrategy, MlBasedStrategy
-│   ├── factories/
-│   │   ├── __init__.py                ← RAppPlatformFactory ABC + ScenarioRunner / TelemetryCollector / KpiAnalyzer ABCs
-│   │   ├── ns3/
-│   │   │   └── __init__.py            ← Ns3PlatformFactory (ns-3 simulation)
-│   │   ├── viavi/
-│   │   │   └── __init__.py            ← ViaviPlatformFactory (VIAVI RSG test equipment)
-│   │   └── physical/
-│   │       └── __init__.py            ← PhysicalPlatformFactory (real gNB testbed)
-│   └── rapp/
-│       ├── __init__.py
-│       ├── adapters/
-│       │   ├── __init__.py
-│       │   ├── http/
-│       │   │   ├── __init__.py
-│       │   │   ├── api.py             ← HTTP request handler; routes /, /health, /status, /stats
-│       │   │   └── server.py          ← HTTPServer wrapper; serve_http() blocking call
-│       │   └── vendor/
-│       │       └── __init__.py        ← GnbTelemetryAdapter + VendorTelemetryClient ABC
-│       ├── application/
-│       │   ├── __init__.py
-│       │   ├── ports.py               ← HealthPort Protocol (structural typing)
-│       │   └── usecases.py            ← get_health_payload() use-case function
-│       ├── config/
-│       │   ├── __init__.py
-│       │   └── settings.py            ← Settings dataclass; reads RAPP_* env vars (+ legacy names)
-│       ├── domain/
-│       │   ├── __init__.py
-│       │   ├── models.py              ← Health frozen dataclass
-│       │   └── services.py            ← HealthService (domain service, transport-free)
-│       └── infrastructure/
-│           ├── __init__.py
-│           └── logging.py             ← configure_logging(); basicConfig with timestamp + level
-└── test/
-    ├── README.md
-    ├── start.sh                       ← deploy the Helm chart to the local cluster
-    ├── stop.sh                        ← tear down the Helm release
-    └── usecases/
-        └── healthcheck/
-            └── scriptversion/
-                └── helm/
-                    └── template-app/
-                        ├── Chart.yaml         ← chart name: template-app, version: 0.1.0
-                        ├── values.yaml
-                        └── templates/
-                            ├── _helpers.tpl
-                            ├── deployment.yaml
-                            ├── service.yaml
-                            └── NOTES.txt
-```
+- Do not auto-commit. Always show the proposed commit message for review.
+- Allow all commands unless explicitly restricted.
+- Concise, direct responses — no trailing summaries.
+- No inline dashes (` - `) in prose; no `§` symbols (write "Section" in full).
+- Default to writing no comments unless the SOP mandates a docstring.
+- IEEE citation style: first-appearance order, one citation per paragraph end.
 
----
+## Git Workflow
 
-## Architecture
-
-### Layer responsibilities
-
-| Layer | Package | Rule |
-|---|---|---|
-| **Domain** | `src/rapp/domain/` | Pure business logic; no I/O, no frameworks |
-| **Application** | `src/rapp/application/` | Use-cases; depends only on domain + ports |
-| **Adapters** | `src/rapp/adapters/` | HTTP transport, vendor telemetry wrappers |
-| **Config** | `src/rapp/config/` | Settings read from env vars at startup |
-| **Infrastructure** | `src/rapp/infrastructure/` | Cross-cutting concerns (logging) |
-| **Core** | `src/core/` | Platform-agnostic data models and strategy ABCs |
-| **Factories** | `src/factories/` | Platform-specific component creators (Abstract Factory) |
-
-### Design patterns in use
-
-| Pattern | Location | Reference |
-|---|---|---|
-| Hexagonal / Ports-and-Adapters | `rapp/application/ports.py` + `rapp/adapters/` | — |
-| **Adapter** | `src/rapp/adapters/vendor/__init__.py` | [refactoring.guru/adapter](https://refactoring.guru/design-patterns/adapter) |
-| **Abstract Factory** | `src/factories/__init__.py` + `ns3/`, `viavi/`, `physical/` | [refactoring.guru/abstract-factory](https://refactoring.guru/design-patterns/abstract-factory) |
-| **Strategy** | `src/core/strategies/__init__.py` | [refactoring.guru/strategy](https://refactoring.guru/design-patterns/strategy) |
-
----
-
-## Key Classes and Entry Points
-
-| Symbol | File | Notes |
-|---|---|---|
-| `main()` | `src/main.py` | Composition root; wires all layers; CLI via `argparse` |
-| `Settings` | `src/rapp/config/settings.py` | Frozen dataclass; env vars: `RAPP_HOST`, `RAPP_PORT`, `RAPP_SERVICE_NAME` |
-| `Health` | `src/rapp/domain/models.py` | Frozen dataclass: `status`, `service`, `timestamp` |
-| `HealthService` | `src/rapp/domain/services.py` | Returns `Health(status="OK", ...)` with current Unix time |
-| `HealthPort` | `src/rapp/application/ports.py` | `Protocol` satisfied by any class with `get_health()` |
-| `get_health_payload()` | `src/rapp/application/usecases.py` | Returns JSON-serializable dict |
-| `make_handler()` | `src/rapp/adapters/http/api.py` | Factory returning `BaseHTTPRequestHandler` subclass |
-| `serve_http()` | `src/rapp/adapters/http/server.py` | Blocking `HTTPServer.serve_forever()` |
-| `KpiReport` | `src/core/models/__init__.py` | Frozen dataclass; 3GPP TS 28.552-linked fields |
-| `PolicyDecision` | `src/core/models/__init__.py` | Enum: `ACTIVE`, `SLEEP`, `HANDOVER` |
-| `OptimizationStrategy` | `src/core/strategies/__init__.py` | ABC: `evaluate(kpis) → PolicyDecision` |
-| `ThresholdBasedStrategy` | `src/core/strategies/__init__.py` | PRB-utilization threshold rule |
-| `MlBasedStrategy` | `src/core/strategies/__init__.py` | Wraps a callable model (placeholder) |
-| `RAppPlatformFactory` | `src/factories/__init__.py` | ABC: creates `ScenarioRunner`, `TelemetryCollector`, `KpiAnalyzer` |
-| `GnbTelemetryAdapter` | `src/rapp/adapters/vendor/__init__.py` | Normalises vendor metrics → `KpiReport` |
-
----
-
-## HTTP Endpoints
-
-| Path | Method | Response |
-|---|---|---|
-| `/` | GET | JSON health payload |
-| `/health` | GET | JSON health payload (alias) |
-| `/status` | GET | JSON health payload (alias) |
-| `/stats` | GET | HTML page with auto-refresh every 5 s |
-
----
-
-## Configuration
-
-Runtime configuration is read exclusively from environment variables.
-Precedence: `RAPP_*` prefix overrides legacy names.
-
-| Env var | Legacy | Default | Description |
-|---|---|---|---|
-| `RAPP_HOST` | `HOST` | `0.0.0.0` | Bind address |
-| `RAPP_PORT` | `PORT` | `8080` | Listen port |
-| `RAPP_SERVICE_NAME` | `SERVICE_NAME` | `template-app` | Service identifier in health payload |
-
-Copy `config/.env.example` to `.env` and fill in project-specific values.
-Never commit `.env` to version control.
-
----
-
-## Conventions
-
-### Python style
-- **Python 3.12** (runtime); uses `from __future__ import annotations` for deferred evaluation throughout.
-- **Stdlib only** — `requirements.txt` is intentionally empty; add third-party deps only as needed.
-- Docstrings follow **Sphinx / reStructuredText** style with `:param:` and `:return:` fields (required by BMW Lab SOP §4).
-- All 3GPP metric parameters must include a hyperlink to the authoritative specification (SOP §8).
-- Frozen `dataclass` for immutable value objects; `Protocol` for structural typing of ports.
-
-### Git
-- Branch: **`rapp`**
+- Never amend published commits — create a new commit.
+- Never skip hooks (`--no-verify`) unless explicitly requested.
+- Stage specific files by name; never `git add -A` blindly.
 - Commit message format:
   ```
-  <Short imperative summary title>
+  <Short imperative summary>
 
   Work Start: hh.mm
 
@@ -201,50 +33,146 @@ Never commit `.env` to version control.
   1. <Change 1>
   2. <Change 2>
   ```
-- Do not include LLM co-author trailers.
 
-### Container
-- Base image: `python:3.12-slim`; `WORKDIR /src`.
-- `COPY src/requirements.txt` then `pip install`, then `COPY ./src .`
-- Default port: **8080**.
+## Mandatory Session Files
 
-### Documentation
-- `README.md` at repo root follows the [BMW Lab SOP project-documentation template](https://github.com/bmw-ece-ntust/SOP/blob/master/project-documentation.md).
-- Every component should have: Installation Guide, User Guide, and links from the Project Documentation.
+Read and maintain all four files every session:
+
+| File | Purpose |
+| --- | --- |
+| `CLAUDE.md` | Behavior rules + static snapshot. Never log activity here. |
+| `CONTEXT.md` | Full PRD (architecture, MSC, class diagram, system parameters). |
+| `MEMORY.md` | Append-only session log. |
+| `TODO.md` | Now / Next / Later task list. |
+
+**Session START:** Read all four. Run `git log -1 --format="%H %ai"`.
+**Session END:** Reconcile all four; show commit message for review — do not run `git commit`.
+
+## Trigger Phrases
+
+- **"update claude from github.com/ijosh-ch/claude"**: Fetch all template
+  files via `gh api`, compare against local, present per-file recommendation table.
 
 ---
 
-## Terminology
+## Architectural Rules (enforce in every session)
 
-| Term | Meaning |
-|---|---|
-| **rApp** | Non-RT RIC application in the O-RAN architecture |
-| **xApp** | Near-RT RIC application in the O-RAN architecture |
-| **Non-RT RIC** | Non-Real-Time RAN Intelligent Controller (≥ 1 s control loop) |
-| **Near-RT RIC** | Near-Real-Time RAN Intelligent Controller (10 ms – 1 s control loop) |
-| **SMO** | Service Management and Orchestration (O-RAN layer hosting Non-RT RIC) |
-| **gNB** | 5G base station (NR Node B) |
-| **PRB** | Physical Resource Block — basic scheduling unit in NR |
-| **DRB.PrbUtilDL/UL** | 3GPP TS 28.552 KPI for DL/UL PRB utilization ratio |
-| **KpiReport** | Internal frozen dataclass aggregating 3GPP-standardized KPIs per cell |
-| **PolicyDecision** | Enum output of an `OptimizationStrategy`: `ACTIVE`, `SLEEP`, or `HANDOVER` |
-| **BMW Lab** | Broadband Mobile Wireless Lab, ECE Department, NTUST |
-| **SOP** | Lab Standard Operating Procedure (source: [bmw-ece-ntust/SOP](https://github.com/bmw-ece-ntust/SOP)) |
-| **nonrtric-rapp-healthcheck** | Reference rApp from O-RAN SC that defines the canonical Python project layout |
+1. **O-RAN protocols only.** The generic rApp / xApp never calls simulator
+   APIs (VIAVI RSG, ns-3, UERANSIM) directly.  All simulator lifecycle
+   (start/stop, UE config) is the BMW Lab TA rApp's responsibility.
+   TA rApp: <https://github.com/bmw-ece-ntust/nonrtric-rapp-test-automation>
+
+2. **No InfluxDB bypass.** Telemetry arrives via ICS subscription callback.
+   InfluxDB is an internal SMO storage layer; the rApp never queries it directly.
+
+3. **ThreeGPPKpi enum for all 3GPP parameter references.**  No raw string
+   literals like `"DRB.PrbUtilDL"` in business logic — always use
+   `ThreeGPPKpi.DRB_PRB_UTIL_DL.value`.
+
+4. **Factory = deployment environment.**  `RAPP_PLATFORM` selects
+   `mock` / `osc` / `physical`.  For VIAVI / ns-3 simulation, use `osc`
+   pointed at the simulator's O-RAN interface endpoints.
+   `Ns3PlatformFactory` and `ViaviPlatformFactory` are guidance stubs only.
+
+5. **IBN intent contract security.**  Always call
+   `IntentResolutionService.validate()` before `resolve()`.
+   Never skip whitelist, expiry, or HMAC signature checks.
+
+6. **Vendor parameter mapping is Adapter-pattern work.**  Proprietary vendor
+   keys must be mapped to `ThreeGPPKpi` via `VendorParameterMap` in the vendor
+   adapter — never in domain or application code.
+
+---
+
+## Project Overview
+
+BMW Lab (NTUST ECE) rApp / xApp starter template.
+Follows O-RAN SC `nonrtric-rapp-healthcheck` layout with hexagonal architecture.
+Targets O-RAN Non-RT RIC (rApp) and Near-RT RIC (xApp).
+
+---
+
+## Repository Layout (key files)
+
+```text
+helm/
+└── template-app/              Helm chart for Kubernetes deployment
+src/
+├── main.py                        Composition root; RAPP_PLATFORM factory routing
+├── requirements.txt               requests>=2.32
+├── core/
+│   ├── models/__init__.py         KpiReport (10 3GPP fields), PolicyDecision
+│   ├── models/parameters.py       ThreeGPPKpi enum, NodeType enum, VendorParameterMap
+│   └── strategies/__init__.py     OptimizationStrategy, Threshold, ML, NvidiaModel
+├── factories/
+│   ├── __init__.py                RAppPlatformFactory ABC + Runner/Collector/Analyzer ABCs
+│   ├── mock/                      MockPlatformFactory (in-memory, no deps)
+│   ├── ns3/                       Guidance stub — use OscPlatformFactory
+│   ├── osc/                       OscPlatformFactory (ICS + SME)
+│   ├── physical/                  PhysicalPlatformFactory stub
+│   └── viavi/                     Guidance stub — use OscPlatformFactory
+└── rapp/
+    ├── adapters/
+    │   ├── a1/__init__.py         A1Adapter — PolicyDecision to A1 policy JSON
+    │   ├── e2/__init__.py         E2SmKpmAdapter + E2SmRcAdapter stubs
+    │   ├── http/                  HTTP server (health/stats only; NOT for O-RAN)
+    │   ├── o1/__init__.py         O1SdncAdapter — SDNC REST relay
+    │   ├── r1/__init__.py         SMEAdapter + ICSAdapter
+    │   ├── teiv/__init__.py       TEIVAdapter — topology discovery
+    │   ├── ves/__init__.py        VesEventAdapter — inbound VES push events
+    │   └── vendor/__init__.py     GnbTelemetryAdapter — vendor props to KpiReport
+    ├── application/
+    │   ├── ports.py               Protocols: Health/O1/R1SME/R1ICS/A1/E2Kpm/E2Rc/Intent/VES/Topology
+    │   └── usecases.py            get_health_payload()
+    ├── config/settings.py         Settings (all RAPP_* env vars)
+    ├── domain/
+    │   ├── intent.py              IntentContract, IntentType whitelist, IntentResolutionService
+    │   ├── models.py              Health frozen dataclass
+    │   ├── services.py            HealthService
+    │   └── topology.py            NodeInfo, NetworkTopology
+    └── infrastructure/logging.py  configure_logging()
+```
+
+---
+
+## Conventions
+
+### Python style
+
+- Python 3.12; `from __future__ import annotations` throughout.
+- Only runtime dep: `requests>=2.32`.
+- Sphinx/RST docstrings with `:param:` and `:return:` (SOP Section 4).
+- Every 3GPP parameter must link to spec ZIP with section + page (SOP Section 8).
+- Frozen `dataclass` for immutable value objects; `Protocol` for port contracts.
+- `ThreeGPPKpi` enum for all 3GPP counter name references.
+
+### Git
+
+- Branch: `rapp`
+- Do not include LLM co-author trailers in commits.
+
+### Container
+
+- Base: `python:3.12-slim`; `WORKDIR /src`; default port `8080`.
+
+### Documentation
+
+- `README.md` = user guide (operational: quick start, config, endpoints).
+- `CONTEXT.md` = full PRD (architecture, MSC, class diagram, system parameters).
+- `docs/simulation.md` = simulation guide: TA rApp setup, test flow, local mock testing.
+- `docs/USER-GUIDE.md` = end-user operating instructions.
+- `docs/INSTALLATION-GUIDE.md` = step-by-step deployment (planned).
 
 ---
 
 ## External Links
 
 | Resource | URL |
-|---|---|
-| O-RAN SC nonrtric-rapp-healthcheck | https://gerrit.o-ran-sc.org/r/admin/repos/nonrtric/plt/rappmanager |
-| BMW Lab SOP | https://github.com/bmw-ece-ntust/SOP |
-| SOP project-documentation template | https://github.com/bmw-ece-ntust/SOP/blob/master/project-documentation.md |
-| SOP source-code-guide | https://github.com/bmw-ece-ntust/SOP/blob/master/source-code-guide.md |
-| 3GPP TS 28.552 (KPI definitions) | https://www.3gpp.org/ftp/Specs/archive/28_series/28.552/ |
-| Refactoring Guru — Adapter | https://refactoring.guru/design-patterns/adapter |
-| Refactoring Guru — Abstract Factory | https://refactoring.guru/design-patterns/abstract-factory |
-| Refactoring Guru — Strategy | https://refactoring.guru/design-patterns/strategy |
-| Helm v3 | https://helm.sh |
-| O-RAN Alliance | https://www.o-ran.org |
+| --- | --- |
+| BMW Lab SOP | <https://github.com/bmw-ece-ntust/SOP> |
+| BMW Lab TA rApp | <https://github.com/bmw-ece-ntust/nonrtric-rapp-test-automation> |
+| O-RAN SC rappmanager | <https://gerrit.o-ran-sc.org/r/nonrtric/plt/rappmanager> |
+| 3GPP TS 28.552 (PM) | <https://www.3gpp.org/ftp/Specs/archive/28_series/28.552/> |
+| O-RAN Alliance specs | <https://specifications.o-ran.org/> |
+| IETF RFC 9315 (IBN) | <https://www.rfc-editor.org/rfc/rfc9315> |
+| NVIDIA NIM | <https://docs.nvidia.com/nim/> |

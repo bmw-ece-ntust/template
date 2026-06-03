@@ -1,76 +1,26 @@
-"""VIAVI RSG test-equipment platform factory.
+"""VIAVI RSG simulation platform — guidance stub.
 
-Implements :class:`factories.RAppPlatformFactory` for VIAVI RSG test equipment.
+For VIAVI RSG simulation, use :class:`factories.osc.OscPlatformFactory`
+pointed at VIAVI's native O-RAN interfaces:
+
+    factory = OscPlatformFactory(
+        sme_base_url=os.environ["RAPP_SME_BASE_URL"],   # VIAVI Non-RT RIC endpoint
+        ics_base_url=os.environ["RAPP_ICS_BASE_URL"],   # VIAVI ICS endpoint
+        ...
+    )
+
+Rationale
+    VIAVI RSG provides a fully functional O-RAN interface layer (O1 NETCONF,
+    A1 policy, E2 KPM/RC) natively.  Simulation lifecycle (start/stop test
+    scenarios, configure UE profiles) is the responsibility of the BMW Lab
+    TA rApp (github.com/bmw-ece-ntust/nonrtric-rapp-test-automation), which
+    calls VIAVI's proprietary REST API (``/sba/tests/run``) and is not part
+    of the generic rApp.  The rApp uses VIAVI exactly as it would use a real
+    gNB — through O-RAN standard protocols only.
+
+TA rApp
+    https://github.com/bmw-ece-ntust/nonrtric-rapp-test-automation
+
+VIAVI RIC Test (RSG)
+    https://www.viavi.com/en-us/products/ric-test
 """
-
-from __future__ import annotations
-
-from factories import KpiAnalyzer, RAppPlatformFactory, ScenarioRunner, TelemetryCollector
-
-
-class ViaviScenarioRunner(ScenarioRunner):
-    """Controls a VIAVI RSG test scenario."""
-
-    def start(self) -> None:
-        """Start the VIAVI scenario.
-
-        :raises NotImplementedError: Replace with VIAVI scenario start logic.
-        """
-        raise NotImplementedError("Implement VIAVI scenario start logic.")
-
-    def stop(self) -> None:
-        """Stop the VIAVI scenario.
-
-        :raises NotImplementedError: Replace with VIAVI scenario stop logic.
-        """
-        raise NotImplementedError("Implement VIAVI scenario stop logic.")
-
-
-class ViaviTelemetryCollector(TelemetryCollector):
-    """Collects raw telemetry from VIAVI RSG output."""
-
-    def collect(self) -> dict[str, float]:
-        """Read VIAVI RSG metrics and return raw data.
-
-        :return: Dictionary of raw metric name → value.
-        :raises NotImplementedError: Replace with VIAVI telemetry parsing.
-        """
-        raise NotImplementedError("Implement VIAVI telemetry collection.")
-
-
-class ViaviKpiAnalyzer(KpiAnalyzer):
-    """Converts VIAVI RSG output into a standardized KpiReport."""
-
-    def analyze(self, raw: dict[str, float]):
-        """Map VIAVI metric names to 3GPP KPI names.
-
-        :param raw: Raw VIAVI metrics dictionary.
-        :return: :class:`core.models.KpiReport`
-        :raises NotImplementedError: Replace with VIAVI KPI mapping logic.
-        """
-        raise NotImplementedError("Implement VIAVI KPI mapping.")
-
-
-class ViaviPlatformFactory(RAppPlatformFactory):
-    """Factory for VIAVI RSG test equipment."""
-
-    def create_scenario_runner(self) -> ScenarioRunner:
-        """Create a VIAVI scenario runner.
-
-        :return: :class:`ViaviScenarioRunner`
-        """
-        return ViaviScenarioRunner()
-
-    def create_telemetry_collector(self) -> TelemetryCollector:
-        """Create a VIAVI telemetry collector.
-
-        :return: :class:`ViaviTelemetryCollector`
-        """
-        return ViaviTelemetryCollector()
-
-    def create_kpi_analyzer(self) -> KpiAnalyzer:
-        """Create a VIAVI KPI analyzer.
-
-        :return: :class:`ViaviKpiAnalyzer`
-        """
-        return ViaviKpiAnalyzer()
