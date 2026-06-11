@@ -9,6 +9,50 @@ ALLIANCE protocol adapters (O1/A1/R1/E2) and pluggable deployment factories.
 
 ---
 
+## Vibe-Coding with Claude Code
+
+This repo is a **vibe-coding template**: it ships pre-configured for
+AI-assisted development with Claude Code, tuned to keep token consumption low
+while exploring an O-RAN hexagonal-architecture codebase.
+
+### Knowledge graph (`graphify`)
+
+Instead of having Claude read every source file to understand the codebase,
+this template uses the [`graphify`](https://github.com/safishamsi/graphify)
+`/graphify` skill to maintain a queryable knowledge graph at `graphify-out/`.
+
+```bash
+# One-time global setup (already done if you're reading this in a configured environment)
+uv tool install graphifyy
+graphify install
+
+# Build or refresh the graph for this project
+/graphify .          # first build
+graphify update .    # AST-only refresh after code edits, no LLM cost
+```
+
+This produces:
+
+- `graphify-out/GRAPH_REPORT.md` — plain-language architecture overview, "god
+  nodes", and community structure. Read this **before** opening raw source
+  files.
+- `graphify-out/graph.json` — structured graph for `graphify query`,
+  `graphify path`, and `graphify explain`.
+- `graphify-out/wiki/` (optional) — agent-crawlable per-module pages.
+
+```bash
+graphify query "How does the rApp send an A1 policy?"
+graphify path "OscPlatformFactory" "A1Adapter"
+graphify explain "IntentResolutionService"
+```
+
+`.graphifyignore` already excludes `.venv/`, `__pycache__/`,
+`helm/**/charts/`, and other non-essential paths from the graph. See
+[CLAUDE.md](CLAUDE.md#knowledge-graph-graphify) for the session rules Claude
+follows when using the graph.
+
+---
+
 ## Quick Start
 
 ```bash

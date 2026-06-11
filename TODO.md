@@ -11,6 +11,7 @@ _Nothing pending._
 
 ## Next
 
+- [ ] Run `/graphify .` once the template is adapted for a real project, and commit the resulting `graphify-out/`
 - [ ] Implement `E2Client` for O-RAN SC RMR transport (`xapp-frame-py` integration)
 - [ ] Implement `E2Client` for FlexRIC gRPC transport
 - [ ] Wire VES push-receiver endpoint to HTTP server (FastAPI route → `VesEventAdapter.dispatch()`)

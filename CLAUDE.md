@@ -45,8 +45,25 @@ Read and maintain all four files every session:
 | `MEMORY.md` | Append-only session log. |
 | `TODO.md` | Now / Next / Later task list. |
 
-**Session START:** Read all four. Run `git log -1 --format="%H %ai"`.
+**Session START:** Read all four. Run `git log -1 --format="%H %ai"`. If
+`graphify-out/` is missing, run `/graphify .` to build the knowledge graph;
+if it exists, run `graphify update .` to refresh it.
 **Session END:** Reconcile all four; show commit message for review — do not run `git commit`.
+
+## Knowledge Graph (graphify)
+
+This project maintains a code knowledge graph at `graphify-out/` via the
+`/graphify` skill (tree-sitter based, multi-language).
+
+- Before answering architecture or codebase-structure questions, read
+  `graphify-out/GRAPH_REPORT.md` (god nodes, community structure) instead of
+  opening raw source files.
+- If `graphify-out/wiki/index.md` exists, navigate it instead of reading raw
+  files.
+- After modifying code files in a session, run `graphify update .` to refresh
+  the graph (AST-only, no API cost).
+- `.graphifyignore` (gitignore syntax) controls what is excluded from the
+  graph (`.venv/`, `__pycache__/`, `helm/**/charts/`, etc.).
 
 ## Trigger Phrases
 
@@ -176,3 +193,4 @@ src/
 | O-RAN Alliance specs | <https://specifications.o-ran.org/> |
 | IETF RFC 9315 (IBN) | <https://www.rfc-editor.org/rfc/rfc9315> |
 | NVIDIA NIM | <https://docs.nvidia.com/nim/> |
+| graphify (knowledge graph skill) | <https://github.com/safishamsi/graphify> |

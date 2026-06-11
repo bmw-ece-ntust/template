@@ -5,6 +5,37 @@
 
 ---
 
+### 2026/06/11 (session 5)
+
+- Resolved a stale `git stash pop` merge conflict in `README.md`: kept the
+  project-specific rApp/xApp README (Quick Start, Config table, HTTP
+  Endpoints, Deployment Platforms, Known Issues, Directory Layout, Links) and
+  discarded a generic Node.js "Installation Guideline" placeholder template
+  that had been stashed and didn't apply to this Python/O-RAN codebase.
+- Integrated the `graphify` knowledge-graph skill (PyPI `graphifyy`,
+  <https://github.com/safishamsi/graphify>) to reduce token consumption when
+  Claude explores this codebase: installed `uv` (`~/.local/bin`) and
+  `graphifyy` globally via `uv tool install`, then ran `graphify install` to
+  register the `/graphify` skill for Claude Code (writes to
+  `~/.claude/skills/graphify/`).
+- Added `.graphifyignore` (gitignore syntax) excluding `.venv/`,
+  `__pycache__/`, `*.py[cod]`, `graphify-out/`, `docs/drawio/`,
+  `docs/upstream/`, `helm/**/charts/`, `dist/`, `build/`.
+- Added a `## Knowledge Graph (graphify)` section to `CLAUDE.md` plus a
+  Session START step: build `graphify-out/` with `/graphify .` if missing,
+  else refresh with `graphify update .` (AST-only, no API cost).
+- Cross-linked `graphify-out/GRAPH_REPORT.md` from `CONTEXT.md` Introduction
+  and added an Execution Status row.
+- Added a "Vibe-Coding with Claude Code" section to `README.md` documenting
+  `/graphify .`, `graphify update .`, `graphify query/path/explain` usage.
+- Added `graphify-out/` to `.dockerignore` (dev/doc artifact, not needed in
+  the runtime image).
+- Decision: did not generate `graphify-out/` yet — full extraction (`graphify
+  extract .`) wants an LLM API key for the 16 doc/markdown files (code-only
+  extraction of the 36 source files is free but was deferred). Tracked in
+  `TODO.md` under Next: run `/graphify .` and commit `graphify-out/` once the
+  template is adapted for a real project.
+
 ### 2026/06/03 (session 4)
 
 - Removed `test/` directory entirely — simulation lifecycle is the BMW Lab TA rApp's responsibility; the generic rApp never calls simulator APIs.
