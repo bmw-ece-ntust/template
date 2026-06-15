@@ -1,0 +1,75 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_SMO",
+      "label": "SMO metrics datasource",
+      "description": "InfluxDB or Prometheus datasource fed by the SMO ranpm / ICS pipeline.",
+      "type": "datasource",
+      "pluginId": "influxdb"
+    }
+  ],
+  "title": "rApp KPIs",
+  "uid": "rapp-kpi",
+  "tags": ["o-ran", "rapp", "kpi"],
+  "schemaVersion": 39,
+  "version": 1,
+  "timezone": "browser",
+  "time": { "from": "now-1h", "to": "now" },
+  "refresh": "10s",
+  "templating": {
+    "list": [
+      {
+        "name": "cell_id",
+        "type": "query",
+        "datasource": "${DS_SMO}",
+        "query": "SHOW TAG VALUES WITH KEY = \"cell_id\"",
+        "includeAll": true,
+        "multi": true
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "DL PRB Utilization (DRB.PrbUtilDL)",
+      "datasource": "${DS_SMO}",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1 } },
+      "targets": [
+        {
+          "refId": "A",
+          "query": "SELECT mean(\"DRB.PrbUtilDL\") FROM \"pm\" WHERE (\"cell_id\" =~ /^$cell_id$/) AND $timeFilter GROUP BY time($__interval), \"cell_id\""
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Active UEs (RRC.ConnMean)",
+      "datasource": "${DS_SMO}",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0 } },
+      "targets": [
+        {
+          "refId": "A",
+          "query": "SELECT mean(\"RRC.ConnMean\") FROM \"pm\" WHERE (\"cell_id\" =~ /^$cell_id$/) AND $timeFilter GROUP BY time($__interval), \"cell_id\""
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "state-timeline",
+      "title": "rApp Policy Decision",
+      "datasource": "${DS_SMO}",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "description": "ACTIVE / SLEEP / HANDOVER emitted by the rApp per cell.",
+      "targets": [
+        {
+          "refId": "A",
+          "query": "SELECT last(\"decision\") FROM \"rapp_policy\" WHERE (\"cell_id\" =~ /^$cell_id$/) AND $timeFilter GROUP BY time($__interval), \"cell_id\""
+        }
+      ]
+    }
+  ]
+}

@@ -5,7 +5,12 @@ Implements :class:`factories.RAppPlatformFactory` for a real gNB testbed.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from factories import KpiAnalyzer, RAppPlatformFactory, ScenarioRunner, TelemetryCollector
+
+if TYPE_CHECKING:
+    from models import KpiReport
 
 
 class PhysicalScenarioRunner(ScenarioRunner):
@@ -41,11 +46,11 @@ class PhysicalTelemetryCollector(TelemetryCollector):
 class PhysicalKpiAnalyzer(KpiAnalyzer):
     """Converts physical gNB telemetry into a standardized KpiReport."""
 
-    def analyze(self, raw: dict[str, float]):
+    def analyze(self, raw: dict[str, float]) -> KpiReport:
         """Map gNB telemetry fields to 3GPP KPI names.
 
         :param raw: Raw gNB metrics dictionary.
-        :return: :class:`core.models.KpiReport`
+        :return: :class:`models.KpiReport`
         :raises NotImplementedError: Replace with physical testbed KPI mapping.
         """
         raise NotImplementedError("Implement physical testbed KPI mapping.")

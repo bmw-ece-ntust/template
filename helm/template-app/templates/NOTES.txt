@@ -1,7 +1,20 @@
-1) The service should be reachable inside the cluster on port {{ .Values.service.port }}.
+{{ include "template-app.fullname" . }} deployed (platform: {{ .Values.config.RAPP_PLATFORM }}).
 
-2) To access it locally (port-forward):
+1) The service is reachable inside the cluster on port {{ .Values.service.port }}.
+
+2) Port-forward to reach it locally:
    kubectl port-forward svc/{{ include "template-app.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
 
-3) Test:
+3) Check health:
    curl http://localhost:{{ .Values.service.port }}/health
+
+{{- if eq .Values.config.RAPP_PLATFORM "osc" }}
+
+4) osc mode is selected. Confirm these are set (via --set config.* / secrets.*):
+   RAPP_SME_BASE_URL, RAPP_ICS_BASE_URL, RAPP_CALLBACK_URL, RAPP_INTENT_SECRET.
+{{- end }}
+{{- if not .Values.secrets.RAPP_INTENT_SECRET }}
+
+WARNING: secrets.RAPP_INTENT_SECRET is empty. IBN intent validation will fail.
+   Set it, e.g.:  --set secrets.RAPP_INTENT_SECRET=$(openssl rand -hex 32)
+{{- end }}

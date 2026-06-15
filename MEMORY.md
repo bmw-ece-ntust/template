@@ -5,6 +5,116 @@
 
 ---
 
+### 2026/06/15 (session 8) — Strategy selection + ES guardrails
+
+**Duration**: 2026/06/15: 15.08 – 19.17
+
+- **"Will this template mislead an LLM building an Energy Saving rApp from O-RAN
+  WG1?"** Analysis: bones are right (`IntentType.ENERGY_SAVING`,
+  `ThresholdBasedStrategy` is the ES algorithm, R1-in/A1-out shape) but four
+  traps: the A1 example is Traffic-Steering-specific (`ORAN_TrafficSteering_0.1.0`
+  plus PREFER/AVOID/FORBID), `PolicyDecision` conflates TS+ES+HO, E2 handlers invite
+  wrong rApp wiring, and "WG1" is a use-case spec not an interface.
+- Per user decision (analysis only, no ES example/A1 generalization): added a
+  **copy-and-rename** "Author a new rApp" section to README with a prune table
+  (rApp vs xApp / single vendor / one algorithm) and guardrail callouts (rApp
+  emits A1/O1 not E2; WG1 = use-case provenance; don't reuse the TS A1 schema for
+  Energy Saving). The repo is a template, not an edit-in-place app.
+- **Clarified pattern boundaries** (in Q&A, now reflected in docs): `factories/`
+  = Abstract Factory keyed on *deployment environment* (does NOT do vendor
+  translation — ICS already delivers 3GPP names); `handlers/adapters/<vendor>/`
+  = Adapter for *proprietary* params. Orthogonal axes.
+- **Fixed the Strategy pattern per refactoring.guru** (the "best fit", kept
+  essential): `controllers/strategies.py` gained a plain `_STRATEGIES` registry +
+  `make_strategy(name, **params)` selector (same idiom as `get_vendor_adapter`);
+  `KpiController` is now a true Context with `set_strategy()` for runtime swap;
+  `main.py` uses `make_strategy(settings.strategy)` with a `RAPP_STRATEGY` env var
+  plus a `--strategy` flag. ML/NIM strategies stay out of the by-name registry (they
+  need an injected callable). Unknown strategy fails fast at startup.
+- Gotcha fixed: `ThresholdBasedStrategy.threshold_high` was stored but never read
+  (dead param) — removed, with a note that two thresholds only make sense for
+  hysteresis (needs cell state). Also fixed the stale
+  `src/rapp/handler/interfaces/nim.py` docstring path → `src/handlers/nim.py`.
+- Added `requirements-dev.txt` (`-e .[dev,docs]`, single-sources pyproject
+  extras) to close the runtime-vs-dev dependency question.
+- Decision: no heavyweight `StrategyFactory` ABC — strategy selection does not
+  vary by platform, so a plain registry/selector is the essential form. Now all
+  three swappable axes (`RAPP_PLATFORM`, `RAPP_STRATEGY`, vendor) are selected
+  identically. Full gate green: 41 tests, 98% coverage, ruff/mypy/sphinx/helm.
+
+### 2026/06/15 (session 7) — MVC restructure
+
+**Duration**: 2026/06/15: 15.08 – (cont.)
+
+- User review of the layout: questioned the `rapp/` wrapper, the `application/`
+  layer (Hexagonal use-cases/ports, not a GoF pattern, absent from OSC), and
+  asked for MVC (models/controllers/views) with O-RAN I/O in `handlers/`.
+- Re-analysed `ric-app-kpimon-go` (called "the best xApp") from its graphify
+  output: the real app is just `kpimon.go` (entry) + `control/` (control.go =
+  controller, e2ap/e2sm/f1ap = protocol handlers, types.go = models). No
+  `application` layer, no wrapper package. Validated the user's instinct.
+- Restructured `src/` from hexagonal `rapp/{domain,application,handler,...}` +
+  `core/` + `factories/` to flat **MVC + handlers**:
+  `models/` (kpi, parameters, topology, intent, health),
+  `controllers/` (kpi_controller, health, strategies),
+  `handlers/` (a1 e2 o1 r1 teiv ves vendor + `adapters/<vendor>`),
+  `views/` (http + grafana), `factories/`, `config/` (settings + logging).
+- Dropped `application/ports.py` (Protocols were docstring-only except
+  `HealthPort`) and `application/usecases.py` (folded `get_health_payload` into
+  `controllers/health.py`). Added `controllers/kpi_controller.py` (`KpiController`
+  collect→analyze→decide), wired into `main.py` so the startup logs a real
+  control cycle.
+- Added `KpiReport.from_3gpp` stays in `models/kpi.py`; `models/__init__`
+  re-exports the common value objects (`from models import KpiReport`).
+- Added the Grafana view: `views/grafana/rapp-kpi-dashboard.json` (PRB, UEs,
+  decision timeline) + README explaining the SMO Grafana/InfluxDB wiring
+  (visualization is config, not Python — same as kpimon writing metrics to a DB).
+- Rewrote every import (perl pass over src/tests/examples), updated pyproject
+  coverage source, Sphinx `reference.rst`, and all layout docs (CLAUDE.md,
+  CONTEXT.md, README.md, src/README.md, llm-authoring-guide, PRD-TEMPLATE,
+  osc-reference-study, sop-review). Full gate green again.
+
+### 2026/06/15 (session 6)
+
+**Duration**: 2026/06/15: 13.15 – 15.08
+
+- Studied 10 OSC reference apps (cloned to `~/Documents/GitHub/OSC/`, graphified
+  AST-only/free): healthcheck, orufhrecovery, ransliceassurance, rappmanager,
+  rappcatalogue (rApps) + hw-python, ad, qp, kpimon-go, rc (xApps). Findings in
+  `docs/osc-reference-study.md`: OSC apps are flat/procedural or Handler+Manager
+  (hw-python) on `ricxappframe`+RMR; none use hexagonal layers, the 3 SOP
+  patterns together, or a 3GPP enum, but all ship tests/Sphinx/CI/descriptor —
+  scaffolding this template historically lacked.
+- Generated the template knowledge graph (`graphify-out/`): `ThreeGPPKpi` is the
+  top god node (35 edges), confirming the enum-centric design.
+- Fixed doc/code drift: CLAUDE.md + CONTEXT.md described `src/rapp/adapters/`
+  but code is `src/rapp/handler/interfaces/*.py`. Realigned both. Removed the
+  empty `simulation/` placeholder (testing delegated to TA rApp; recorded as an
+  intentional SOP deviation in `docs/sop-review.md`).
+- Added multi-vendor proprietary adapters under `src/rapp/handler/adapters/`:
+  `VendorAdapter` ABC + auto-registry (`get_vendor_adapter`), `ericsson/` and
+  `nokia/` each with a proprietary `str` enum + `VendorParameterMap` →
+  `ThreeGPPKpi`. Added `KpiReport.from_3gpp()` as the shared standardized-dict →
+  report bridge and `VendorParameterMap.keys()`.
+- Industrial tooling: `pyproject.toml` (ruff + mypy + pytest + coverage, src
+  layout), recreated `tests/` (36 tests, 98% coverage on core+domain, 80% gate),
+  `.pre-commit-config.yaml`, `.github/workflows/ci.yml` (lint→type→test→docs→helm).
+  Fixed all ruff (kept `class X(str, Enum)`, ignored UP042) and mypy issues.
+- Sphinx API docs (`docs/conf.py`, `index.rst`, `reference.rst`, `Makefile`);
+  builds clean with `-W` after fixing two RST docstrings (settings table, mock
+  example block).
+- Hardened Helm chart: `configmap.yaml`, `secret.yaml`, `serviceaccount.yaml`,
+  `ingress.yaml`, image helper, securityContext, resource requests/limits, tmp
+  emptyDir for readOnlyRootFilesystem. Validated with `helm lint` + `helm
+  template` (default + osc + ingress).
+- LLM authoring kit: `docs/PRD-TEMPLATE.md`, `docs/llm-authoring-guide.md`, and
+  `examples/` (threshold rApp, ericsson adapter, intent resolution) — all run
+  network-free.
+- SOP review (`docs/sop-review.md`): keep design-first + spec-traceability +
+  production-readiness; ADD quality gates/CI/pre-commit/pyproject/enum
+  rule/vendor-folder spec/IBN section; allow hexagonal layout; relax mandatory
+  `simulation/` + `ns3`/`viavi` factory folders.
+
 ### 2026/06/11 (session 5)
 
 - Resolved a stale `git stash pop` merge conflict in `README.md`: kept the

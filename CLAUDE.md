@@ -86,10 +86,12 @@ This project maintains a code knowledge graph at `graphify-out/` via the
    literals like `"DRB.PrbUtilDL"` in business logic — always use
    `ThreeGPPKpi.DRB_PRB_UTIL_DL.value`.
 
-4. **Factory = deployment environment.**  `RAPP_PLATFORM` selects
-   `mock` / `osc` / `physical`.  For VIAVI / ns-3 simulation, use `osc`
-   pointed at the simulator's O-RAN interface endpoints.
-   `Ns3PlatformFactory` and `ViaviPlatformFactory` are guidance stubs only.
+4. **Every swappable axis is config-selected the same way.**  `RAPP_PLATFORM`
+   selects the deployment factory (`mock` / `osc` / `physical`); `RAPP_STRATEGY`
+   selects the algorithm via `controllers.strategies.make_strategy`; the vendor
+   adapter is resolved via `get_vendor_adapter`.  Never hard-code these in the
+   composition root.  For VIAVI / ns-3 simulation, use `osc` pointed at the
+   simulator's O-RAN interface endpoints (`Ns3`/`Viavi` factories are stubs).
 
 5. **IBN intent contract security.**  Always call
    `IntentResolutionService.validate()` before `resolve()`.
@@ -97,57 +99,56 @@ This project maintains a code knowledge graph at `graphify-out/` via the
 
 6. **Vendor parameter mapping is Adapter-pattern work.**  Proprietary vendor
    keys must be mapped to `ThreeGPPKpi` via `VendorParameterMap` in the vendor
-   adapter — never in domain or application code.
+   adapter (`handlers/adapters/<vendor>/`) — never in models or controllers.
 
 ---
 
 ## Project Overview
 
 BMW Lab (NTUST ECE) rApp / xApp starter template.
-Follows O-RAN SC `nonrtric-rapp-healthcheck` layout with hexagonal architecture.
+Simple, professional **MVC + handlers** architecture (models / controllers /
+views, with O-RAN I/O in handlers — the shape of OSC `ric-app-kpimon-go`).
 Targets O-RAN Non-RT RIC (rApp) and Near-RT RIC (xApp).
 
 ---
 
 ## Repository Layout (key files)
 
+> **Authoritative source:** the code is the source of truth. Structure is
+> MVC + handlers (inspired by OSC `ric-app-kpimon-go`): O-RAN standard interface
+> adapters live in `src/handlers/*.py`; proprietary vendor adapters live in
+> `src/handlers/adapters/<vendor>/`. No `rapp/` wrapper, no `application/` layer.
+
 ```text
-helm/
-└── template-app/              Helm chart for Kubernetes deployment
+pyproject.toml                     Project metadata + ruff/mypy/pytest config
+requirements-dev.txt               Dev/docs tooling (-e .[dev,docs]); runtime deps in src/requirements.txt
+helm/template-app/                 Helm chart for Kubernetes deployment
+tests/                             pytest suite (models, controllers, adapters)
+examples/                          Runnable end-to-end usage scripts
 src/
-├── main.py                        Composition root; RAPP_PLATFORM factory routing
+├── main.py                        Composition root; RAPP_PLATFORM factory routing + control cycle
 ├── requirements.txt               requests>=2.32
-├── core/
-│   ├── models/__init__.py         KpiReport (10 3GPP fields), PolicyDecision
-│   ├── models/parameters.py       ThreeGPPKpi enum, NodeType enum, VendorParameterMap
-│   └── strategies/__init__.py     OptimizationStrategy, Threshold, ML, NvidiaModel
-├── factories/
-│   ├── __init__.py                RAppPlatformFactory ABC + Runner/Collector/Analyzer ABCs
-│   ├── mock/                      MockPlatformFactory (in-memory, no deps)
-│   ├── ns3/                       Guidance stub — use OscPlatformFactory
-│   ├── osc/                       OscPlatformFactory (ICS + SME)
-│   ├── physical/                  PhysicalPlatformFactory stub
-│   └── viavi/                     Guidance stub — use OscPlatformFactory
-└── rapp/
-    ├── adapters/
-    │   ├── a1/__init__.py         A1Adapter — PolicyDecision to A1 policy JSON
-    │   ├── e2/__init__.py         E2SmKpmAdapter + E2SmRcAdapter stubs
-    │   ├── http/                  HTTP server (health/stats only; NOT for O-RAN)
-    │   ├── o1/__init__.py         O1SdncAdapter — SDNC REST relay
-    │   ├── r1/__init__.py         SMEAdapter + ICSAdapter
-    │   ├── teiv/__init__.py       TEIVAdapter — topology discovery
-    │   ├── ves/__init__.py        VesEventAdapter — inbound VES push events
-    │   └── vendor/__init__.py     GnbTelemetryAdapter — vendor props to KpiReport
-    ├── application/
-    │   ├── ports.py               Protocols: Health/O1/R1SME/R1ICS/A1/E2Kpm/E2Rc/Intent/VES/Topology
-    │   └── usecases.py            get_health_payload()
-    ├── config/settings.py         Settings (all RAPP_* env vars)
-    ├── domain/
-    │   ├── intent.py              IntentContract, IntentType whitelist, IntentResolutionService
-    │   ├── models.py              Health frozen dataclass
-    │   ├── services.py            HealthService
-    │   └── topology.py            NodeInfo, NetworkTopology
-    └── infrastructure/logging.py  configure_logging()
+├── models/                        M — data only, no I/O
+│   ├── kpi.py                     KpiReport (11 3GPP fields), PolicyDecision, from_3gpp
+│   ├── parameters.py              ThreeGPPKpi enum, NodeType enum, VendorParameterMap
+│   ├── topology.py                NodeInfo, NetworkTopology
+│   ├── intent.py                  IntentContract, IntentType whitelist, IntentResolutionService
+│   └── health.py                  Health frozen dataclass
+├── controllers/                   C — orchestration + algorithms
+│   ├── kpi_controller.py          KpiController (Context): collect → analyze → decide; set_strategy
+│   ├── health.py                  HealthService + get_health_payload
+│   └── strategies.py              OptimizationStrategy, Threshold/ML/Nvidia, make_strategy selector
+├── handlers/                      O-RAN STANDARD interface adapters (Adapter pattern)
+│   ├── a1.py e2.py o1.py r1.py teiv.py ves.py vendor.py
+│   └── adapters/                  PROPRIETARY vendor adapters (multi-vendor)
+│       ├── __init__.py            VendorAdapter ABC + vendor registry
+│       ├── ericsson/              EricssonParam enum + map → ThreeGPPKpi
+│       └── nokia/                 NokiaParam enum + map → ThreeGPPKpi
+├── factories/                     Abstract Factory: mock / osc / physical (+ ns3/viavi stubs)
+├── views/                         V — health/stats HTTP + Grafana dashboards
+│   ├── http/                      api.py, server.py (health/stats only; NOT for O-RAN)
+│   └── grafana/                   rapp-kpi-dashboard.json + README (SMO Grafana)
+└── config/                        settings.py (RAPP_* env vars) + logging.py
 ```
 
 ---
@@ -174,11 +175,16 @@ src/
 
 ### Documentation
 
-- `README.md` = user guide (operational: quick start, config, endpoints).
+- `README.md` = Getting Started + user guide (quick start, config, deploy, endpoints).
 - `CONTEXT.md` = full PRD (architecture, MSC, class diagram, system parameters).
+- `docs/PRD-TEMPLATE.md` = fill-in PRD for a new rApp (design contract).
+- `docs/llm-authoring-guide.md` = PRD → rApp generation workflow for LLMs.
+- `docs/osc-reference-study.md` = OSC reference-app structure survey.
+- `docs/sop-review.md` = assessment + improvement suggestions for the BMW Lab SOP.
 - `docs/simulation.md` = simulation guide: TA rApp setup, test flow, local mock testing.
 - `docs/USER-GUIDE.md` = end-user operating instructions.
 - `docs/INSTALLATION-GUIDE.md` = step-by-step deployment (planned).
+- API reference = Sphinx (`docs/conf.py`); build to `docs/_build/html`.
 
 ---
 

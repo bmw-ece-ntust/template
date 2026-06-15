@@ -1,24 +1,80 @@
 replicaCount: 1
 
 image:
+  # Full registry URL, e.g. nexus3.o-ran-sc.org:10002 — leave empty for a
+  # locally built image. Document credentials per SOP Section 7.1.
+  registry: ""
   repository: template-app
-  tag: dev
+  # Defaults to .Chart.appVersion when empty.
+  tag: ""
   pullPolicy: IfNotPresent
+
+# Names of Kubernetes secrets holding registry pull credentials.
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podAnnotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
 
 service:
   type: ClusterIP
   port: 8080
 
-resources: {}
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
 
-nodeSelector: {}
-
-tolerations: []
-
-affinity: {}
-
-podAnnotations: {}
-
-env:
+# Non-secret rApp configuration — rendered into a ConfigMap and injected via
+# envFrom. Mirrors the RAPP_* environment variables in config/.env.example.
+config:
   RAPP_SERVICE_NAME: template-app
   RAPP_PORT: "8080"
+  RAPP_PLATFORM: mock
+  RAPP_STRATEGY: threshold
+  RAPP_SME_BASE_URL: ""
+  RAPP_ICS_BASE_URL: ""
+  RAPP_CALLBACK_URL: ""
+  RAPP_CELL_ID: cell-0
+  # readOnlyRootFilesystem is enabled; avoid writing .pyc files.
+  PYTHONDONTWRITEBYTECODE: "1"
+
+# Secret values — rendered into a Secret and injected via envFrom. Never commit
+# real values. Provide at install time, e.g.:
+#   helm install rapp ./helm/template-app \
+#     --set secrets.RAPP_INTENT_SECRET=$(openssl rand -hex 32)
+secrets:
+  RAPP_INTENT_SECRET: ""
+  NVIDIA_API_KEY: ""
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: rapp.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

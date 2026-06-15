@@ -3,11 +3,11 @@
 Use this factory when ``RAPP_PLATFORM=mock`` (the default).  No network
 connections, no simulator, no Non-RT RIC required.
 
-:Example:
+Run as the default platform::
 
     RAPP_PLATFORM=mock python src/main.py
 
-    or in tests:
+Or drive it directly in tests::
 
     factory = MockPlatformFactory(
         fixture={
@@ -24,18 +24,18 @@ from __future__ import annotations
 
 import logging
 
-from core.models import KpiReport
-from core.models.parameters import ThreeGPPKpi
 from factories import KpiAnalyzer, RAppPlatformFactory, ScenarioRunner, TelemetryCollector
+from models import KpiReport
+from models.parameters import ThreeGPPKpi
 
 _log = logging.getLogger(__name__)
 
 _DEFAULT_FIXTURE: dict[str, float] = {
     ThreeGPPKpi.DRB_PRB_UTIL_DL.value: 0.45,
     ThreeGPPKpi.DRB_PRB_UTIL_UL.value: 0.30,
-    ThreeGPPKpi.RRC_CONN_MEAN.value:    12.0,
-    ThreeGPPKpi.DRB_UE_THP_DL.value:   25_000.0,
-    ThreeGPPKpi.DRB_UE_THP_UL.value:   10_000.0,
+    ThreeGPPKpi.RRC_CONN_MEAN.value: 12.0,
+    ThreeGPPKpi.DRB_UE_THP_DL.value: 25_000.0,
+    ThreeGPPKpi.DRB_UE_THP_UL.value: 10_000.0,
 }
 
 
@@ -76,7 +76,7 @@ class MockTelemetryCollector(TelemetryCollector):
 
 
 class MockKpiAnalyzer(KpiAnalyzer):
-    """Maps fixture dict directly to a :class:`~core.models.KpiReport`.
+    """Maps fixture dict directly to a :class:`~models.KpiReport`.
 
     :param cell_id: Cell ID to embed in the produced report.
     :param gnb_id: gNB ID to embed in the produced report.
@@ -87,10 +87,10 @@ class MockKpiAnalyzer(KpiAnalyzer):
         self._gnb_id = gnb_id
 
     def analyze(self, raw: dict[str, float]) -> KpiReport:
-        """Build a :class:`~core.models.KpiReport` from the fixture dict.
+        """Build a :class:`~models.KpiReport` from the fixture dict.
 
         :param raw: Raw metric dict from :class:`MockTelemetryCollector`.
-        :return: :class:`~core.models.KpiReport`.
+        :return: :class:`~models.KpiReport`.
         """
         return KpiReport(
             cell_id=self._cell_id,

@@ -16,14 +16,15 @@ from __future__ import annotations
 
 import argparse
 import logging
-import os
 
+from config.logging import configure_logging
+from config.settings import Settings
+from controllers.health import HealthService
+from controllers.kpi_controller import KpiController
+from controllers.strategies import make_strategy
 from factories import RAppPlatformFactory
 from factories.mock import MockPlatformFactory
-from rapp.adapters.http.server import serve_http
-from rapp.config.settings import Settings
-from rapp.domain.services import HealthService
-from rapp.infrastructure.logging import configure_logging
+from views.http.server import serve_http
 
 _log = logging.getLogger(__name__)
 
@@ -31,8 +32,8 @@ _log = logging.getLogger(__name__)
 def parse_args(defaults: Settings) -> Settings:
     """Parse CLI args, overriding env-var defaults where provided.
 
-    :param defaults: :class:`~rapp.config.settings.Settings` from env.
-    :return: Updated :class:`~rapp.config.settings.Settings`.
+    :param defaults: :class:`~config.settings.Settings` from env.
+    :return: Updated :class:`~config.settings.Settings`.
     """
     parser = argparse.ArgumentParser(prog="rapp-template")
     parser.add_argument("--host", default=defaults.host)
@@ -44,6 +45,11 @@ def parse_args(defaults: Settings) -> Settings:
         choices=["mock", "osc", "physical"],
         help="Deployment platform (default: mock)",
     )
+    parser.add_argument(
+        "--strategy",
+        default=defaults.strategy,
+        help="Optimization strategy (default: threshold)",
+    )
     parser.add_argument("--version", action="version", version="%(prog)s 0.1")
     args = parser.parse_args()
     return Settings(
@@ -51,6 +57,7 @@ def parse_args(defaults: Settings) -> Settings:
         port=args.port,
         service_name=args.service_name,
         platform=args.platform,
+        strategy=args.strategy,
         sme_base_url=defaults.sme_base_url,
         ics_base_url=defaults.ics_base_url,
         callback_url=defaults.callback_url,
@@ -68,6 +75,7 @@ def _build_factory(settings: Settings) -> RAppPlatformFactory:
     """
     if settings.platform == "osc":
         from factories.osc import OscPlatformFactory
+
         return OscPlatformFactory(
             sme_base_url=settings.sme_base_url or "http://nonrtric:8090",
             ics_base_url=settings.ics_base_url or "http://nonrtric:8083",
@@ -79,14 +87,14 @@ def _build_factory(settings: Settings) -> RAppPlatformFactory:
 
     if settings.platform == "physical":
         from factories.physical import PhysicalPlatformFactory
+
         return PhysicalPlatformFactory()
 
     if settings.platform == "mock":
         return MockPlatformFactory()
 
     raise ValueError(
-        f"Unknown RAPP_PLATFORM={settings.platform!r}. "
-        "Valid values: mock, osc, physical."
+        f"Unknown RAPP_PLATFORM={settings.platform!r}. Valid values: mock, osc, physical."
     )
 
 
@@ -97,20 +105,31 @@ def main() -> None:
 
     _log.info(
         "Starting rApp  platform=%s  service=%s  %s:%d",
-        settings.platform, settings.service_name, settings.host, settings.port,
+        settings.platform,
+        settings.service_name,
+        settings.host,
+        settings.port,
     )
 
     health_service = HealthService(service_name=settings.service_name)
 
     factory = _build_factory(settings)
-    runner   = factory.create_scenario_runner()
-    collector = factory.create_telemetry_collector()  # noqa: F841 — used by xApp logic
-    analyzer  = factory.create_kpi_analyzer()         # noqa: F841 — used by xApp logic
+    runner = factory.create_scenario_runner()
+    controller = KpiController(
+        collector=factory.create_telemetry_collector(),
+        analyzer=factory.create_kpi_analyzer(),
+        strategy=make_strategy(settings.strategy),
+    )
 
     runner.start()
 
+    # Demonstrate one control cycle at startup; a scheduler or ICS callback
+    # would drive this loop in production.
+    report, decision = controller.evaluate_once()
+    _log.info("control cycle  cell=%s  decision=%s", report.cell_id, decision.value)
+
     try:
-        serve_http(settings, health_port=health_service)
+        serve_http(settings, health=health_service)
     finally:
         runner.stop()
 

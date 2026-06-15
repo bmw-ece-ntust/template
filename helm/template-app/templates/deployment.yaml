@@ -8,33 +8,41 @@ spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "template-app.name" . }}
-      app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- include "template-app.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "template-app.name" . }}
-        app.kubernetes.io/instance: {{ .Release.Name }}
+        {{- include "template-app.selectorLabels" . | nindent 8 }}
       annotations:
-        {{- toYaml .Values.podAnnotations | nindent 8 }}
+        # Roll pods when config/secret content changes.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
+      serviceAccountName: {{ include "template-app.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ include "template-app.name" . }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: {{ include "template-app.image" . | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-          env:
-            - name: RAPP_SERVICE_NAME
-              value: {{ .Values.env.RAPP_SERVICE_NAME | quote }}
-            - name: RAPP_PORT
-              value: {{ .Values.env.RAPP_PORT | quote }}
-            - name: SERVICE_NAME
-              value: {{ .Values.env.RAPP_SERVICE_NAME | quote }}
-            - name: PORT
-              value: {{ .Values.env.RAPP_PORT | quote }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "template-app.fullname" . }}
+            - secretRef:
+                name: {{ include "template-app.fullname" . }}
           livenessProbe:
             httpGet:
               path: /health
@@ -49,3 +57,22 @@ spec:
             periodSeconds: 5
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        # readOnlyRootFilesystem is enabled; provide a writable /tmp.
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

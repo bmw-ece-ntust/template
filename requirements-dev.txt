@@ -1,0 +1,11 @@
+# Development + documentation tooling.
+#
+# Single source of truth is pyproject.toml; this file just installs the project
+# in editable mode with its dev and docs extras so contributors can run the
+# full quality gate without memorising the extras syntax.
+#
+#   pip install -r requirements-dev.txt
+#
+# Runtime-only dependencies live in src/requirements.txt (requests>=2.32).
+
+-e .[dev,docs]

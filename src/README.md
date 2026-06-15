@@ -1,78 +1,39 @@
 # src/
 
-This `src/` folder follows the **O-RAN SC nonrtric-rapp-healthcheck** convention:
-- A runnable entrypoint at `src/main.py`
-- Python dependencies listed in `src/requirements.txt`
+Runnable rApp/xApp source. The entrypoint is `main.py`; Python runtime deps are
+in `requirements.txt` (O-RAN SC `nonrtric-rapp-healthcheck` convention).
 
-At the same time, it provides a scalable structure for real rApps by using a
-**Clean Architecture / Hexagonal (Ports & Adapters)** style under `src/rapp/`.
+## Layout (MVC + handlers, inspired by OSC `ric-app-kpimon-go`)
 
-## Why this design fits rApps
+`ric-app-kpimon-go` — the cleanest OSC xApp — is essentially *entry point +
+controller + protocol handlers + models*. This template follows the same shape,
+adding a typed/tested/documented structure:
 
-rApps are typically **integration-heavy** (A1/REST calls, message buses, k8s, config maps, metrics).
-A clean separation keeps your *policy/decision logic* testable and stable even as
-external endpoints, SDKs, or deployment details change.
-
-Key idea: **Dependency direction points inward**.
-- The **domain/application** code never imports HTTP/A1/Kafka libraries.
-- The **adapters** implement interfaces (“ports”) defined by the application.
-- `main.py` is the **composition root** that wires everything together.
-
-## Folder structure
-
-- `main.py`
-  - **Composition root**: loads settings, wires services/adapters, starts the server.
-  - Keep it thin: no business logic.
-
-- `rapp/config/`
-  - Configuration parsing and validation.
-  - `settings.py`: loads env vars (`RAPP_*` preferred; legacy supported).
-
-- `rapp/domain/`
-  - **Pure business logic** and data models.
-  - `models.py`: dataclasses like `Health`, later `Kpi`, `Policy`, `Decision`.
-  - `services.py`: logic like `HealthService`, later “evaluate KPIs → decide actions”.
-
-- `rapp/application/`
-  - **Use-cases** and **ports (interfaces)**.
-  - `ports.py`: Protocol/ABC interfaces (e.g., `A1ClientPort`, `PolicyRepoPort`).
-  - `usecases.py`: orchestrates domain services via ports.
-
-- `rapp/adapters/`
-  - Integrations to the outside world.
-  - `http/`: HTTP handlers and server wiring.
-  - (Future) `a1/`, `messaging/`, `db/`, `k8s/` adapters.
-
-- `rapp/infrastructure/`
-  - Logging, tracing, runtime utilities.
-  - Keep infra helpers here so adapters stay small.
-
-## Design patterns used (and where)
-
-- **Ports & Adapters (Hexagonal)**
-  - Ports are defined in `rapp/application/ports.py`.
-  - Adapters (HTTP, A1, Kafka, DB) implement those ports.
-
-- **Dependency Injection (manual)**
-  - `src/main.py` constructs services and passes them into adapters.
-
-- **Adapter pattern**
-  - HTTP adapter translates HTTP ↔ use-case inputs/outputs.
-  - Future: wrap A1 SDK/REST into a stable `A1ClientPort`.
-
-- **Strategy pattern** (recommended for real rApps)
-  - Put multiple decision algorithms under `domain/` and select via config.
-
-- **Resilience patterns** (recommended)
-  - Add timeouts/retries/circuit-breakers inside adapters calling external services.
-
-## How to run locally
-
-From repo root:
-
-```bash
-python3 src/main.py --port 8080
-curl http://localhost:8080/health
+```text
+main.py          Composition root: select platform factory, run control loop, serve HTTP
+models/          M — data only, no I/O
+  kpi.py           KpiReport, PolicyDecision, KpiReport.from_3gpp
+  parameters.py    ThreeGPPKpi, NodeType, VendorParameterMap
+  topology.py      NodeInfo, NetworkTopology
+  intent.py        IntentContract, IntentType, IntentResolutionService
+  health.py        Health
+controllers/     C — orchestration + algorithms
+  kpi_controller.py  KpiController: collect → analyze → decide
+  health.py          HealthService + get_health_payload
+  strategies.py      OptimizationStrategy (Threshold / ML / Nvidia)  ← Strategy pattern
+handlers/        O-RAN + vendor I/O boundary  ← Adapter pattern
+  a1.py e2.py o1.py r1.py teiv.py ves.py vendor.py
+  adapters/        proprietary per-vendor: ericsson/ nokia/
+factories/       mock / osc / physical component creators  ← Abstract Factory
+views/           V — how state is surfaced
+  http/            health/stats HTTP endpoints
+  grafana/         dashboard JSON for the SMO Grafana
+config/          settings.py (env vars) + logging.py
 ```
 
-Expected JSON includes `status`, `service`, `timestamp`.
+## Dependency direction
+
+`models` depends on nothing. `controllers` depend on `models` (and on the
+`factories` ABCs for typing). `handlers` and `factories` depend on `models`.
+`views` depend on `controllers`. `main.py` wires it all together. No business
+logic imports HTTP/REST libraries directly — that lives in `handlers`/`views`.

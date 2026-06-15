@@ -5,9 +5,24 @@ __pycache__/
 *.py[cod]
 .venv/
 
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
 # Build artifacts
 dist/
 build/
+docs/_build/
+*.egg-info/
+
+# Generated knowledge graph (regenerate with `graphify update .`)
+graphify-out/
+
+# Local, per-machine Claude Code settings (never commit)
+.claude/settings.local.json
 
 # macOS
 .DS_Store

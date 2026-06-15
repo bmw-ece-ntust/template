@@ -1,0 +1,107 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "oran-rapp-template"
+version = "0.1.0"
+description = "BMW Lab O-RAN rApp/xApp starter template (hexagonal, multi-vendor, 3GPP-traceable)"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+authors = [{ name = "BMW Lab, NTUST ECE" }]
+keywords = ["o-ran", "rapp", "xapp", "non-rt-ric", "near-rt-ric", "3gpp"]
+dependencies = ["requests>=2.32"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "types-requests>=2.32",
+]
+docs = [
+    "sphinx>=7.3",
+    "sphinx-rtd-theme>=2.0",
+]
+
+[project.urls]
+"BMW Lab SOP" = "https://github.com/bmw-ece-ntust/SOP"
+"TA rApp" = "https://github.com/bmw-ece-ntust/nonrtric-rapp-test-automation"
+
+# src/ holds three importable top-level packages: core, factories, rapp.
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# ---------------------------------------------------------------------------
+# Ruff — linter + formatter
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests", "examples"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "C4", "SIM", "RUF"]
+ignore = [
+    # E501 (line length): spec URLs in docstrings are intentionally long and
+    # must stay clickable; the formatter handles code line length.
+    "E501",
+    # UP042: the `class X(str, Enum)` idiom is intentional and pinned in the
+    # conventions (CLAUDE.md) for explicit JSON/dict-key interop. StrEnum is
+    # avoided to keep `.value` semantics consistent across the codebase.
+    "UP042",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["core", "factories", "rapp"]
+
+# ---------------------------------------------------------------------------
+# mypy — static type checking
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "src"
+explicit_package_bases = true
+namespace_packages = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = true
+no_implicit_optional = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["requests.*"]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# pytest + coverage
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+# Coverage floor applies to the pure, deterministic core: models (data + 3GPP
+# enums + intent + topology), controllers (strategies, health), and vendor
+# adapters. The O-RAN HTTP/RMR handlers (o1/r1/teiv/ves transport, osc factory,
+# main) are integration code covered by the BMW Lab TA rApp, not unit tests.
+addopts = "-q --cov --cov-report=term-missing --cov-fail-under=80"
+
+[tool.coverage.run]
+source = [
+    "models",
+    "controllers",
+    "handlers.adapters",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "@abstractmethod",
+]

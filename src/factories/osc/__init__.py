@@ -20,7 +20,7 @@ Platform-component mapping
          - R1/ICS job-result polling
        * - :class:`~factories.KpiAnalyzer`
          - :class:`OscKpiAnalyzer`
-         - 3GPP PM counter → :class:`~core.models.KpiReport`
+         - 3GPP PM counter → :class:`~models.KpiReport`
 
 Usage
     Use this factory when ``RAPP_PLATFORM=osc`` is set in the environment.
@@ -38,10 +38,10 @@ import logging
 
 import requests
 
-from core.models import KpiReport
-from core.models.parameters import ThreeGPPKpi
 from factories import KpiAnalyzer, RAppPlatformFactory, ScenarioRunner, TelemetryCollector
-from rapp.adapters.r1 import ICSAdapter, R1ICSError, SMEAdapter
+from handlers.r1 import ICSAdapter, SMEAdapter
+from models import KpiReport
+from models.parameters import ThreeGPPKpi
 
 _log = logging.getLogger(__name__)
 
@@ -50,6 +50,7 @@ _log = logging.getLogger(__name__)
 # ScenarioRunner — rApp lifecycle (SME register + ICS subscribe)
 # ---------------------------------------------------------------------------
 
+
 class OscLifecycleRunner(ScenarioRunner):
     """Manages the rApp lifecycle within the O-RAN SC Non-RT RIC.
 
@@ -57,8 +58,8 @@ class OscLifecycleRunner(ScenarioRunner):
     configured ICS data types.  On :meth:`stop`, cancels subscriptions and
     deregisters from SME in reverse order for a clean shutdown.
 
-    :param sme: Configured :class:`~rapp.adapters.r1.SMEAdapter` instance.
-    :param ics: Configured :class:`~rapp.adapters.r1.ICSAdapter` instance.
+    :param sme: Configured :class:`~handlers.r1.SMEAdapter` instance.
+    :param ics: Configured :class:`~handlers.r1.ICSAdapter` instance.
     :param ics_data_types: List of ICS data type IDs to subscribe to
         (e.g. ``["PM_REPORT_CELL_LEVEL"]``).
 
@@ -82,8 +83,8 @@ class OscLifecycleRunner(ScenarioRunner):
     def start(self) -> None:
         """Register with SME and subscribe to all configured ICS data types.
 
-        :raises rapp.adapters.r1.R1SMEError: If SME registration fails.
-        :raises rapp.adapters.r1.R1ICSError: If any ICS subscription fails.
+        :raises handlers.r1.R1SMEError: If SME registration fails.
+        :raises handlers.r1.R1ICSError: If any ICS subscription fails.
         """
         _log.info("OscLifecycleRunner: starting")
         self._sme.register()
@@ -106,6 +107,7 @@ class OscLifecycleRunner(ScenarioRunner):
 # ---------------------------------------------------------------------------
 # TelemetryCollector — ICS job-result polling
 # ---------------------------------------------------------------------------
+
 
 class OscIcsTelemetryCollector(TelemetryCollector):
     """Collects telemetry by polling ICS job results from the Non-RT RIC.
@@ -147,21 +149,20 @@ class OscIcsTelemetryCollector(TelemetryCollector):
             resp.raise_for_status()
             return {k: float(v) for k, v in resp.json().items() if isinstance(v, (int, float))}
         except requests.RequestException as exc:
-            raise RuntimeError(
-                f"ICS poll failed for job {self._job_id!r}: {exc}"
-            ) from exc
+            raise RuntimeError(f"ICS poll failed for job {self._job_id!r}: {exc}") from exc
 
 
 # ---------------------------------------------------------------------------
 # KpiAnalyzer — raw ICS payload → KpiReport
 # ---------------------------------------------------------------------------
 
+
 class OscKpiAnalyzer(KpiAnalyzer):
     """Translates raw ICS PM counter payloads into standardized KPI reports.
 
     ICS delivers performance-measurement data using 3GPP counter names
     (e.g. ``DRB.PrbUtilDL``, ``RRC.ConnMean``).  This analyzer maps those
-    names directly to :class:`~core.models.KpiReport` fields without any
+    names directly to :class:`~models.KpiReport` fields without any
     vendor-specific translation — the O-RAN standard guarantees the names.
 
     :param cell_id: NR Cell Global ID annotated in the produced report.
@@ -176,7 +177,7 @@ class OscKpiAnalyzer(KpiAnalyzer):
         self._cell_id = cell_id
 
     def analyze(self, raw: dict[str, float]) -> KpiReport:
-        """Convert ICS raw PM counters to a :class:`~core.models.KpiReport`.
+        """Convert ICS raw PM counters to a :class:`~models.KpiReport`.
 
         Expected keys in *raw* (3GPP TS 28.552):
 
@@ -187,7 +188,7 @@ class OscKpiAnalyzer(KpiAnalyzer):
         Missing keys default to ``0`` / ``0.0``.
 
         :param raw: Raw PM counter dict from :class:`OscIcsTelemetryCollector`.
-        :return: Standardized :class:`~core.models.KpiReport`.
+        :return: Standardized :class:`~models.KpiReport`.
         """
         return KpiReport(
             cell_id=self._cell_id,
@@ -202,6 +203,7 @@ class OscKpiAnalyzer(KpiAnalyzer):
 # ---------------------------------------------------------------------------
 # Abstract Factory — OscPlatformFactory
 # ---------------------------------------------------------------------------
+
 
 class OscPlatformFactory(RAppPlatformFactory):
     """Abstract factory for O-RAN SC Non-RT RIC deployments.

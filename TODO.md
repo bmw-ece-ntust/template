@@ -11,24 +11,28 @@ _Nothing pending._
 
 ## Next
 
-- [ ] Run `/graphify .` once the template is adapted for a real project, and commit the resulting `graphify-out/`
-- [ ] Implement `E2Client` for O-RAN SC RMR transport (`xapp-frame-py` integration)
+- [ ] Add a worked `EnergySavingStrategy` and register it in `_STRATEGIES` (WG1 use case)
+- [ ] Generalize A1: an Energy-Saving policy type instead of reusing `ORAN_TrafficSteering_0.1.0`
+- [ ] Implement `IntentResolutionService.resolve()` for the energy-saving use case
+- [ ] Implement `E2Client` for O-RAN SC RMR transport (`ricxappframe` / xapp-frame-py)
 - [ ] Implement `E2Client` for FlexRIC gRPC transport
-- [ ] Wire VES push-receiver endpoint to HTTP server (FastAPI route → `VesEventAdapter.dispatch()`)
-- [ ] Implement `IntentResolutionService.resolve()` for energy-saving use case
-- [ ] Implement `NimAdapter` under `src/rapp/adapters/nim/` (NVIDIA NIM REST client)
+- [ ] Wire VES push-receiver endpoint to the HTTP server (`VesEventAdapter.dispatch()`)
+- [ ] Implement `NimAdapter` at `src/handlers/nim.py` (NVIDIA NIM REST client) for `NvidiaModelStrategy`
+- [ ] Add an `xapp-descriptor/config.json` (RMR tx/rx) for the xApp onboarding profile
 - [ ] Add rApp lifecycle state machine (onboard → prime → instantiate → running) per O-RAN WG2
 - [ ] Add `RAPP_PLATFORM=osc` integration test against VIAVI TA rApp endpoints
 - [ ] Migrate HTTP server from stdlib `BaseHTTPRequestHandler` to FastAPI + uvicorn
-- [ ] Add pytest suite under `tests/` covering `MockPlatformFactory` + `IntentResolutionService`
-- [ ] Generate Sphinx API docs and link from `CONTEXT.md`
+- [ ] Publish Sphinx HTML (ReadTheDocs or GitHub Pages) from CI
 - [ ] Add `docs/INSTALLATION-GUIDE.md`
 
 ## Later
 
+- [ ] Add a hysteresis `ThresholdBasedStrategy` variant (uses cell on/off state to avoid flapping)
+- [ ] Add a third vendor adapter (e.g. `handlers/adapters/aruba/` for WiFi APs)
 - [ ] Add CSAR/TOSCA packaging for O-RAN SC rApp Manager onboarding
-- [ ] Add `ConfigManager` pattern (JSON + env var override) alongside `Settings` dataclass
-- [ ] Add ns-3 E2 simulation connector (`Ns3ScenarioRunner` using ns-O-RAN integration)
-- [ ] Evaluate A1 policy-driven strategy (`A1PolicyStrategy` receiving policy → selecting `OptimizationStrategy`)
+- [ ] Add `ConfigManager` pattern (JSON + env override) alongside `Settings`
+- [ ] Add ns-3 E2 connector (`Ns3ScenarioRunner` via ns-O-RAN) if needed
+- [ ] Evaluate A1 policy-driven strategy (`A1PolicyStrategy` selecting an `OptimizationStrategy`)
 - [ ] Add multi-Near-RT-RIC A1 policy distribution (iterate `NetworkTopology.cells()`)
 - [ ] Add O1 YANG change-notification subscription (not just get/set config)
+- [ ] Feed `docs/sop-review.md` suggestions back into the BMW Lab SOP repo
