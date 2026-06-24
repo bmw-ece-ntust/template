@@ -17,7 +17,7 @@ _Nothing pending._
 - [ ] Implement `E2Client` for O-RAN SC RMR transport (`ricxappframe` / xapp-frame-py)
 - [ ] Implement `E2Client` for FlexRIC gRPC transport
 - [ ] Wire VES push-receiver endpoint to the HTTP server (`VesEventAdapter.dispatch()`)
-- [ ] Implement `NimAdapter` at `src/handlers/nim.py` (NVIDIA NIM REST client) for `NvidiaModelStrategy`
+- [ ] Implement a NVIDIA NIM REST client (injected as the `nim_infer` callable) for `NvidiaModelStrategy` — not under `handlers/` (O-RAN-only)
 - [ ] Add an `xapp-descriptor/config.json` (RMR tx/rx) for the xApp onboarding profile
 - [ ] Add rApp lifecycle state machine (onboard → prime → instantiate → running) per O-RAN WG2
 - [ ] Add `RAPP_PLATFORM=osc` integration test against VIAVI TA rApp endpoints
@@ -28,7 +28,7 @@ _Nothing pending._
 ## Later
 
 - [ ] Add a hysteresis `ThresholdBasedStrategy` variant (uses cell on/off state to avoid flapping)
-- [ ] Add a third vendor adapter (e.g. `handlers/adapters/aruba/` for WiFi APs)
+- [ ] Add a third vendor factory (e.g. `factories/aruba/` for WiFi APs)
 - [ ] Add CSAR/TOSCA packaging for O-RAN SC rApp Manager onboarding
 - [ ] Add `ConfigManager` pattern (JSON + env override) alongside `Settings`
 - [ ] Add ns-3 E2 connector (`Ns3ScenarioRunner` via ns-O-RAN) if needed

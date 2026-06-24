@@ -87,19 +87,22 @@ This project maintains a code knowledge graph at `graphify-out/` via the
    `ThreeGPPKpi.DRB_PRB_UTIL_DL.value`.
 
 4. **Every swappable axis is config-selected the same way.**  `RAPP_PLATFORM`
-   selects the deployment factory (`mock` / `osc` / `physical`); `RAPP_STRATEGY`
-   selects the algorithm via `controllers.strategies.make_strategy`; the vendor
-   adapter is resolved via `get_vendor_adapter`.  Never hard-code these in the
-   composition root.  For VIAVI / ns-3 simulation, use `osc` pointed at the
-   simulator's O-RAN interface endpoints (`Ns3`/`Viavi` factories are stubs).
+   selects the deployment factory (`mock` / `osc` / `physical` / `ericsson` /
+   `nokia`) in `main._build_factory`; `RAPP_STRATEGY` selects the algorithm via
+   `controllers.strategies.make_strategy`.  Vendor support is a platform: each
+   vendor is its own Abstract Factory (`factories/<vendor>/`), not a separate
+   axis.  Never hard-code these in the composition root.  For VIAVI / ns-3
+   simulation, use `osc` pointed at the simulator's O-RAN interface endpoints
+   (`Ns3`/`Viavi` factories are stubs).
 
 5. **IBN intent contract security.**  Always call
    `IntentResolutionService.validate()` before `resolve()`.
    Never skip whitelist, expiry, or HMAC signature checks.
 
 6. **Vendor parameter mapping is Adapter-pattern work.**  Proprietary vendor
-   keys must be mapped to `ThreeGPPKpi` via `VendorParameterMap` in the vendor
-   adapter (`handlers/adapters/<vendor>/`) — never in models or controllers.
+   keys must be mapped to `ThreeGPPKpi` via `VendorParameterMap` inside the
+   vendor platform factory (`factories/<vendor>/`, in its `KpiAnalyzer`) —
+   never in models, controllers, or the `handlers/interfaces/` O-RAN adapters.
 
 ---
 
@@ -116,8 +119,10 @@ Targets O-RAN Non-RT RIC (rApp) and Near-RT RIC (xApp).
 
 > **Authoritative source:** the code is the source of truth. Structure is
 > MVC + handlers (inspired by OSC `ric-app-kpimon-go`): O-RAN standard interface
-> adapters live in `src/handlers/*.py`; proprietary vendor adapters live in
-> `src/handlers/adapters/<vendor>/`. No `rapp/` wrapper, no `application/` layer.
+> adapters live in `src/handlers/interfaces/*.py`; proprietary vendor handling is
+> a deployment concern owned by per-vendor Abstract Factories in
+> `src/factories/<vendor>/`. `handlers/` is O-RAN-standard only. No `rapp/`
+> wrapper, no `application/` layer.
 
 ```text
 pyproject.toml                     Project metadata + ruff/mypy/pytest config
@@ -138,13 +143,13 @@ src/
 │   ├── kpi_controller.py          KpiController (Context): collect → analyze → decide; set_strategy
 │   ├── health.py                  HealthService + get_health_payload
 │   └── strategies.py              OptimizationStrategy, Threshold/ML/Nvidia, make_strategy selector
-├── handlers/                      O-RAN STANDARD interface adapters (Adapter pattern)
-│   ├── a1.py e2.py o1.py r1.py teiv.py ves.py vendor.py
-│   └── adapters/                  PROPRIETARY vendor adapters (multi-vendor)
-│       ├── __init__.py            VendorAdapter ABC + vendor registry
-│       ├── ericsson/              EricssonParam enum + map → ThreeGPPKpi
-│       └── nokia/                 NokiaParam enum + map → ThreeGPPKpi
-├── factories/                     Abstract Factory: mock / osc / physical (+ ns3/viavi stubs)
+├── handlers/                      O-RAN STANDARD interfaces only (Adapter pattern)
+│   └── interfaces/                a1.py e2.py o1.py r1.py teiv.py ves.py
+├── factories/                     Abstract Factory: deployment + vendor selector (RAPP_PLATFORM)
+│   ├── mock/ osc/ physical/       standard environments (osc = 3GPP names, no vendor xlat)
+│   ├── ns3/ viavi/                simulation guidance stubs (use osc)
+│   ├── ericsson/                  EricssonParam enum + map + analyzer(Adapter) + factory
+│   └── nokia/                     NokiaParam enum + map + analyzer(Adapter) + factory
 ├── views/                         V — health/stats HTTP + Grafana dashboards
 │   ├── http/                      api.py, server.py (health/stats only; NOT for O-RAN)
 │   └── grafana/                   rapp-kpi-dashboard.json + README (SMO Grafana)

@@ -1,6 +1,6 @@
 """Network topology domain model — multi-gNB / multi-vendor / WiFi registry.
 
-Populated from the SMO TEIV service (:class:`~handlers.teiv.TEIVAdapter`)
+Populated from the SMO TEIV service (:class:`~handlers.interfaces.teiv.TEIVAdapter`)
 or configured manually.  Use-cases iterate over :class:`NetworkTopology` when
 applying operations across multiple cells or gNBs.
 """

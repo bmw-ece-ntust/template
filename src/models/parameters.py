@@ -63,14 +63,14 @@ class NodeType(str, Enum):
 class VendorParameterMap:
     """Maps proprietary vendor metric names to :class:`ThreeGPPKpi` identifiers.
 
-    Declare a class-level ``PARAM_MAP`` in each
-    :class:`~handlers.vendor.VendorTelemetryClient` subclass::
+    Declare one module-level map per vendor platform factory (e.g.
+    :data:`factories.ericsson.ERICSSON_PARAM_MAP`)::
 
-        PARAM_MAP: ClassVar[dict[str, ThreeGPPKpi]] = {
+        VENDOR_PARAM_MAP = VendorParameterMap({
             "dl_prb_usage_pct": ThreeGPPKpi.DRB_PRB_UTIL_DL,
             "ul_prb_usage_pct": ThreeGPPKpi.DRB_PRB_UTIL_UL,
             "active_ue_count":  ThreeGPPKpi.RRC_CONN_MEAN,
-        }
+        })
 
     This makes the Adapter pattern's translation table auditable and
     directly traceable to the 3GPP specification.

@@ -15,8 +15,8 @@ generation is a fill-in-the-slots exercise rather than open-ended design:
 | Algorithm (Strategy) | `controllers/strategies.py` → `<Name>Strategy` | controllers |
 | Inputs (3GPP params) | `models/parameters.py` (`ThreeGPPKpi`) + `models/kpi.py` | models |
 | Outputs (decision) | `models/kpi.py` (`PolicyDecision` or custom enum) | models |
-| O-RAN interfaces | `handlers/*.py` (reuse adapters) | handlers |
-| Multi-vendor | `handlers/adapters/<vendor>/` (proprietary enum + map) | handlers |
+| O-RAN interfaces | `handlers/interfaces/*.py` (reuse adapters) | handlers |
+| Multi-vendor | `factories/<vendor>/` (Abstract Factory: proprietary enum + map + analyzer) | factories |
 | Intent (IBN) | `models/intent.py` (whitelist + resolve) | models |
 | Control loop | `controllers/kpi_controller.py` (collect → analyze → decide) | controllers |
 | Visualization | `views/grafana/*.json` (SMO Grafana) | views |
@@ -35,8 +35,9 @@ generation is a fill-in-the-slots exercise rather than open-ended design:
 3. **Core first (Strategy + models).** Implement the algorithm as a
    `OptimizationStrategy` subclass. Pure logic, no I/O, no framework imports.
 4. **Wire adapters, never reimplement them.** Reuse the existing
-   `handlers/*` adapters for O1/A1/E2/R1/VES/TEIV. For a new vendor,
-   add `handlers/adapters/<vendor>/` following `ericsson/__init__.py`.
+   `handlers/interfaces/*` adapters for O1/A1/E2/R1/VES/TEIV. For a new vendor,
+   add a `factories/<vendor>/` Abstract Factory following
+   `factories/ericsson/__init__.py`.
 5. **Compose in `main.py`.** Route `RAPP_PLATFORM` to the right factory; build
    the strategy and adapters; run the control loop.
 6. **Tests for every pure unit.** Add `tests/test_*.py` covering the strategy,
@@ -52,7 +53,8 @@ review failure.
 1. **No raw 3GPP string literals** in business logic. Always
    `ThreeGPPKpi.<MEMBER>.value`.
 2. **Vendor mapping is adapter work.** Proprietary keys map to `ThreeGPPKpi`
-   only inside `handlers/adapters/<vendor>/` — never in models or controllers.
+   only inside the `factories/<vendor>/` analyzer — never in models, controllers,
+   or the `handlers/interfaces/` O-RAN adapters.
 3. **O-RAN protocols only.** The app never calls a simulator API directly;
    simulation is the BMW Lab TA rApp's job.
 4. **Validate intents before resolving.** Call

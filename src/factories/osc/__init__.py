@@ -39,7 +39,7 @@ import logging
 import requests
 
 from factories import KpiAnalyzer, RAppPlatformFactory, ScenarioRunner, TelemetryCollector
-from handlers.r1 import ICSAdapter, SMEAdapter
+from handlers.interfaces.r1 import ICSAdapter, SMEAdapter
 from models import KpiReport
 from models.parameters import ThreeGPPKpi
 
@@ -58,8 +58,8 @@ class OscLifecycleRunner(ScenarioRunner):
     configured ICS data types.  On :meth:`stop`, cancels subscriptions and
     deregisters from SME in reverse order for a clean shutdown.
 
-    :param sme: Configured :class:`~handlers.r1.SMEAdapter` instance.
-    :param ics: Configured :class:`~handlers.r1.ICSAdapter` instance.
+    :param sme: Configured :class:`~handlers.interfaces.r1.SMEAdapter` instance.
+    :param ics: Configured :class:`~handlers.interfaces.r1.ICSAdapter` instance.
     :param ics_data_types: List of ICS data type IDs to subscribe to
         (e.g. ``["PM_REPORT_CELL_LEVEL"]``).
 
@@ -83,8 +83,8 @@ class OscLifecycleRunner(ScenarioRunner):
     def start(self) -> None:
         """Register with SME and subscribe to all configured ICS data types.
 
-        :raises handlers.r1.R1SMEError: If SME registration fails.
-        :raises handlers.r1.R1ICSError: If any ICS subscription fails.
+        :raises handlers.interfaces.r1.R1SMEError: If SME registration fails.
+        :raises handlers.interfaces.r1.R1ICSError: If any ICS subscription fails.
         """
         _log.info("OscLifecycleRunner: starting")
         self._sme.register()

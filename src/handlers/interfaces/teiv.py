@@ -3,7 +3,7 @@
 TEIV (O-RAN SC L Release) maintains a real-time graph of cells, gNBs,
 O-DUs, O-RUs, and their relationships.  Use this adapter on startup to
 populate :class:`~models.topology.NetworkTopology`, then subscribe to
-O1 VES ``cellStatusChange`` events (via :class:`~handlers.ves.VesEventAdapter`)
+O1 VES ``cellStatusChange`` events (via :class:`~handlers.interfaces.ves.VesEventAdapter`)
 to keep it current.
 
 rApps should not hard-code cell IDs.  Instead they query topology at startup

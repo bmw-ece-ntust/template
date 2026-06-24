@@ -23,7 +23,7 @@ across projects.
 **Contribution:** A simple, professional **MVC + handlers** template (models /
 controllers / views, with O-RAN I/O in handlers — the shape of OSC
 `ric-app-kpimon-go`) that:
-1. Implements O1/A1/R1/E2 interface adapters in `handlers/`.
+1. Implements O1/A1/R1/E2 interface adapters in `handlers/interfaces/`.
 2. Provides a `ThreeGPPKpi` enum so all 3GPP parameter references are
    spec-traceable (TS 28.552, TS 36.214).
 3. Supports multi-vendor / multi-gNB / WiFi AP via `NodeType` enum +
@@ -64,6 +64,7 @@ before reading raw source files.
 | Restructure to MVC + handlers (drop `rapp/` + `application/`) | ✅ | 2026-06-15 | `models/controllers/handlers/views/factories/config`; `KpiController`; Grafana view |
 | Strategy selection (`RAPP_STRATEGY` + `make_strategy`) + `KpiController` Context (`set_strategy`) | ✅ | 2026-06-15 | config-selected like platform/vendor; removed dead `threshold_high` |
 | `requirements-dev.txt` + "copy-and-rename" new-rApp guide + ES/WG1 guardrails | ✅ | 2026-06-15 | README anti-confusion notes for LLM-driven generation |
+| Single-axis refactor: `handlers/interfaces/` (O-RAN only) + per-vendor Abstract Factories | ✅ | 2026-06-24 | vendor folded into `RAPP_PLATFORM` (`factories/ericsson`, `factories/nokia`); dropped `handlers/adapters/` + `handlers/vendor.py` |
 | E2Client RMR/gRPC implementation | ⏳ | TBD | Requires OSC xapp-frame-py (`ricxappframe`) |
 | VES push-receiver HTTP endpoint | ⏳ | TBD | Wire to FastAPI route |
 | IntentResolutionService.resolve() | ⏳ | TBD | Implement per use-case |
@@ -126,7 +127,7 @@ graph TB
         subgraph rApp["rApp (this template)"]
             models["models/\nKpiReport · ThreeGPPKpi · NodeType\nNetworkTopology · IntentContract"]
             controllers["controllers/\nKpiController · HealthService\nOptimizationStrategy · NvidiaModelStrategy"]
-            handlers["handlers/\no1 · r1 · a1 · e2 · ves · teiv · vendor · adapters/<vendor>"]
+            handlers["handlers/interfaces/\no1 · r1 · a1 · e2 · ves · teiv"]
             views["views/\nhttp (health/stats) · grafana"]
         end
     end
@@ -148,24 +149,24 @@ Structure is **MVC + handlers** (inspired by OSC `ric-app-kpimon-go`):
 | --- | --- | --- |
 | Models (M) | `src/models/` | Pure data + 3GPP enums; no I/O, no frameworks |
 | Controllers (C) | `src/controllers/` | Orchestration (control loop, health) + Strategy algorithms |
-| Handlers | `src/handlers/` | O-RAN standard interface adapters (Adapter pattern) |
-| Handlers (vendor) | `src/handlers/adapters/<vendor>/` | Proprietary vendor parameter normalization |
+| Handlers | `src/handlers/interfaces/` | O-RAN standard interface adapters only (Adapter pattern) |
 | Views (V) | `src/views/` | HTTP health/stats + Grafana dashboards for the SMO |
-| Factories | `src/factories/` | Abstract Factory: mock / osc / physical |
+| Factories | `src/factories/` | Abstract Factory: mock / osc / physical + per-vendor (ericsson / nokia) |
+| Factories (vendor) | `src/factories/<vendor>/` | Proprietary vendor parameter normalization (Adapter inside the analyzer) |
 | Config | `src/config/` | Settings from env vars + logging setup |
 
 ### O-RAN Interface Compliance
 
 | Interface | Spec | Adapter | Status |
 | --- | --- | --- | --- |
-| O1 (YANG/NETCONF) | O-RAN.WG5.O1, TS 28.535 | `handlers/o1.py` | Stub (SDNC REST) |
-| R1/SME | O-RAN WG2 R1-AP | `handlers/r1.py` (SMEAdapter) | Implemented |
-| R1/ICS | O-RAN WG2 R1-AP | `handlers/r1.py` (ICSAdapter) | Implemented |
-| A1 | O-RAN.WG2.A1AP | `handlers/a1.py` | Implemented |
-| E2 SM-KPM | O-RAN.WG3.E2SM-KPM | `handlers/e2.py` (E2SmKpmAdapter) | Stub |
-| E2 SM-RC | O-RAN.WG3.E2SM-RC | `handlers/e2.py` (E2SmRcAdapter) | Stub |
-| VES (O1 events) | TS 28.532 | `handlers/ves.py` | Stub |
-| Vendor (proprietary) | TS 28.552 mapping | `handlers/adapters/<vendor>/` | Ericsson + Nokia examples |
+| O1 (YANG/NETCONF) | O-RAN.WG5.O1, TS 28.535 | `handlers/interfaces/o1.py` | Stub (SDNC REST) |
+| R1/SME | O-RAN WG2 R1-AP | `handlers/interfaces/r1.py` (SMEAdapter) | Implemented |
+| R1/ICS | O-RAN WG2 R1-AP | `handlers/interfaces/r1.py` (ICSAdapter) | Implemented |
+| A1 | O-RAN.WG2.A1AP | `handlers/interfaces/a1.py` | Implemented |
+| E2 SM-KPM | O-RAN.WG3.E2SM-KPM | `handlers/interfaces/e2.py` (E2SmKpmAdapter) | Stub |
+| E2 SM-RC | O-RAN.WG3.E2SM-RC | `handlers/interfaces/e2.py` (E2SmRcAdapter) | Stub |
+| VES (O1 events) | TS 28.532 | `handlers/interfaces/ves.py` | Stub |
+| Vendor (proprietary) | TS 28.552 mapping | `factories/<vendor>/` | Ericsson + Nokia examples |
 
 ---
 
@@ -371,7 +372,6 @@ classDiagram
 | `main()` | `src/main.py` | Composition root; `RAPP_PLATFORM` factory routing |
 | `Settings` | `src/config/settings.py` | Frozen dataclass; all `RAPP_*` env vars |
 | `KpiReport` | `src/models/kpi.py` | Frozen dataclass; 11 3GPP-linked fields; `from_3gpp()` bridge |
-| `VendorAdapter` | `src/handlers/adapters/__init__.py` | Vendor ABC + registry (`get_vendor_adapter`) |
 | `ThreeGPPKpi` | `src/models/parameters.py` | String enum; canonical 3GPP counter names |
 | `NodeType` | `src/models/parameters.py` | `GNB` / `ENODEB` / `WIFI_AP` |
 | `VendorParameterMap` | `src/models/parameters.py` | Vendor key → ThreeGPPKpi translation |
@@ -385,17 +385,16 @@ classDiagram
 | `make_strategy` | `src/controllers/strategies.py` | Registry selector; `RAPP_STRATEGY` → strategy |
 | `NvidiaModelStrategy` | `src/controllers/strategies.py` | NVIDIA NIM stub; pass `nim_infer` callable |
 | `KpiController` | `src/controllers/kpi_controller.py` | Strategy Context; control loop + `set_strategy` |
-| `VendorTelemetryClient` | `src/handlers/vendor.py` | Generic vendor ABC + `GnbTelemetryAdapter` |
-| `EricssonTelemetryAdapter` | `src/handlers/adapters/ericsson/__init__.py` | Ericsson proprietary → `KpiReport` |
-| `NokiaTelemetryAdapter` | `src/handlers/adapters/nokia/__init__.py` | Nokia proprietary → `KpiReport` |
-| `O1SdncAdapter` | `src/handlers/o1.py` | O-RAN YANG → SDNC REST |
-| `SMEAdapter` | `src/handlers/r1.py` | rApp lifecycle with Non-RT RIC |
-| `ICSAdapter` | `src/handlers/r1.py` | Data subscription |
-| `A1Adapter` | `src/handlers/a1.py` | `PolicyDecision` → A1 policy JSON |
-| `E2SmKpmAdapter` | `src/handlers/e2.py` | E2SM-KPM subscribe + parse |
-| `E2SmRcAdapter` | `src/handlers/e2.py` | E2SM-RC control request |
-| `VesEventAdapter` | `src/handlers/ves.py` | Inbound O1 VES event dispatch |
-| `TEIVAdapter` | `src/handlers/teiv.py` | TEIV topology discovery |
+| `EricssonPlatformFactory` | `src/factories/ericsson/__init__.py` | Ericsson factory; `EricssonParam` + map + `EricssonKpiAnalyzer` (Adapter) |
+| `NokiaPlatformFactory` | `src/factories/nokia/__init__.py` | Nokia factory; `NokiaParam` + map + `NokiaKpiAnalyzer` (Adapter) |
+| `O1SdncAdapter` | `src/handlers/interfaces/o1.py` | O-RAN YANG → SDNC REST |
+| `SMEAdapter` | `src/handlers/interfaces/r1.py` | rApp lifecycle with Non-RT RIC |
+| `ICSAdapter` | `src/handlers/interfaces/r1.py` | Data subscription |
+| `A1Adapter` | `src/handlers/interfaces/a1.py` | `PolicyDecision` → A1 policy JSON |
+| `E2SmKpmAdapter` | `src/handlers/interfaces/e2.py` | E2SM-KPM subscribe + parse |
+| `E2SmRcAdapter` | `src/handlers/interfaces/e2.py` | E2SM-RC control request |
+| `VesEventAdapter` | `src/handlers/interfaces/ves.py` | Inbound O1 VES event dispatch |
+| `TEIVAdapter` | `src/handlers/interfaces/teiv.py` | TEIV topology discovery |
 | `RAppPlatformFactory` | `src/factories/__init__.py` | ABC: creates `ScenarioRunner/Collector/Analyzer` |
 | `MockPlatformFactory` | `src/factories/mock/__init__.py` | In-memory; no deps |
 | `OscPlatformFactory` | `src/factories/osc/__init__.py` | Real ICS + SME |

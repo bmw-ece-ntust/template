@@ -138,8 +138,9 @@ _STRATEGIES: dict[str, type[OptimizationStrategy]] = {
 def make_strategy(name: str, **params: float) -> OptimizationStrategy:
     """Construct a built-in optimization strategy by name.
 
-    Mirrors the platform factory (``RAPP_PLATFORM``) and vendor registry
-    (``get_vendor_adapter``) so every swappable axis is selected the same way.
+    Mirrors the platform-factory selector (``RAPP_PLATFORM``, which also
+    selects the vendor management plane) so every swappable axis is chosen the
+    same way.
 
     :param name: Strategy identifier, e.g. ``"threshold"``.
     :param params: Keyword arguments forwarded to the strategy constructor.

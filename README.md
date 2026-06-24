@@ -17,10 +17,10 @@ deployment factories.
 | Capability | Where |
 | --- | --- |
 | MVC layers (models / controllers / views) | `src/models/`, `src/controllers/`, `src/views/` |
-| O-RAN standard interface adapters (O1/A1/E2/R1/TEIV/VES) | `src/handlers/` |
-| Multi-vendor proprietary adapters (Ericsson, Nokia) | `src/handlers/adapters/<vendor>/` |
+| O-RAN standard interface adapters (O1/A1/E2/R1/TEIV/VES) | `src/handlers/interfaces/` |
+| Multi-vendor proprietary factories (Ericsson, Nokia) | `src/factories/<vendor>/` |
 | Spec-traceable 3GPP KPI enum | `src/models/parameters.py` (`ThreeGPPKpi`) |
-| Strategy / Abstract-Factory / Adapter patterns | `controllers/strategies.py`, `factories/`, `handlers/` |
+| Strategy / Abstract-Factory / Adapter patterns | `controllers/strategies.py`, `factories/`, `handlers/interfaces/` |
 | Contract-based Intent (IBN) with HMAC validation | `src/models/intent.py` |
 | Tests (pytest, 80% gate on models+controllers) | `tests/` |
 | Lint + type + format + CI | `pyproject.toml`, `.github/workflows/ci.yml` |
@@ -87,13 +87,14 @@ commit `.env`. In Kubernetes these map to the chart's `config:` (ConfigMap) and
 
 | Env var | Default | Description |
 | --- | --- | --- |
-| `RAPP_PLATFORM` | `mock` | `mock` / `osc` / `physical` |
+| `RAPP_PLATFORM` | `mock` | `mock` / `osc` / `physical` / `ericsson` / `nokia` |
 | `RAPP_STRATEGY` | `threshold` | Optimization algorithm (`make_strategy`) |
 | `RAPP_HOST` | `0.0.0.0` | Bind address |
 | `RAPP_PORT` | `8080` | Listen port |
 | `RAPP_SERVICE_NAME` | `template-app` | Service name in health payload |
 | `RAPP_SME_BASE_URL` | — | Non-RT RIC SME base URL (osc only) |
 | `RAPP_ICS_BASE_URL` | — | Non-RT RIC ICS base URL (osc only) |
+| `RAPP_EMS_BASE_URL` | — | Vendor EMS/NMS base URL (`ericsson` / `nokia` only) |
 | `RAPP_CALLBACK_URL` | — | This rApp's inbound callback URL (osc only) |
 | `RAPP_CELL_ID` | `cell-0` | Primary cell ID (osc only) |
 | `RAPP_INTENT_SECRET` | — | HMAC secret for IBN intent contracts |
@@ -116,8 +117,10 @@ These are operational endpoints only. O-RAN traffic flows over O1/A1/E2/R1, not 
 | `RAPP_PLATFORM` | Description | Use when |
 | --- | --- | --- |
 | `mock` | In-memory no-op, fixed KPI fixture | Unit tests, demos, CI, developer laptop |
-| `osc` | Live O-RAN interfaces via ICS/SME | Production OSC deployment or VIAVI simulation via the BMW Lab TA rApp |
+| `osc` | Live O-RAN interfaces via ICS/SME (telemetry already in 3GPP names) | Production OSC deployment or VIAVI simulation via the BMW Lab TA rApp |
 | `physical` | Physical gNB testbed | Real hardware experiments |
+| `ericsson` | Ericsson EMS/ENM management plane; proprietary PM → `ThreeGPPKpi` Adapter | Reading an Ericsson node's proprietary counters directly |
+| `nokia` | Nokia NetAct management plane; proprietary PM → `ThreeGPPKpi` Adapter | Reading a Nokia node's proprietary counters directly |
 
 **Simulation note:** Simulator lifecycle (start/stop VIAVI or ns-3 scenarios, UE
 mobility) is the responsibility of the BMW Lab TA rApp
@@ -149,9 +152,9 @@ so nothing misleads a reader (or an LLM):
 
 | Building an… | Keep | Can delete |
 | --- | --- | --- |
-| **rApp** (Non-RT RIC) | `handlers/{o1,a1,r1,teiv,ves}.py`, `factories/osc` | `handlers/e2.py` (that is the xApp path) |
-| **xApp** (Near-RT RIC) | `handlers/e2.py` | `handlers/{r1,teiv}.py` if unused |
-| single vendor | one `handlers/adapters/<vendor>/` | the other vendor example |
+| **rApp** (Non-RT RIC) | `handlers/interfaces/{o1,a1,r1,teiv,ves}.py`, `factories/osc` | `handlers/interfaces/e2.py` (that is the xApp path) |
+| **xApp** (Near-RT RIC) | `handlers/interfaces/e2.py` | `handlers/interfaces/{r1,teiv}.py` if unused |
+| single vendor | one `factories/<vendor>/` | the other vendor example |
 | one algorithm | your `controllers/strategies.py` class | the strategy variants you don't use |
 
 > **rApp vs xApp:** an rApp emits **A1 policy** (or **O1** config) and lets the
@@ -159,7 +162,7 @@ so nothing misleads a reader (or an LLM):
 >
 > **"From O-RAN WG1":** WG1 publishes *use-case specifications* (e.g. Network
 > Energy Saving), not an interface. Realize the use case over R1 (telemetry) +
-> A1/O1 (action). The A1 example in `handlers/a1.py` is a *Traffic Steering*
+> A1/O1 (action). The A1 example in `handlers/interfaces/a1.py` is a *Traffic Steering*
 > policy — for Energy Saving, define your own policy type / decision data,
 > don't reuse the `ORAN_TrafficSteering_0.1.0` schema verbatim.
 
@@ -167,8 +170,8 @@ so nothing misleads a reader (or an LLM):
 
 1. Copy [docs/PRD-TEMPLATE.md](docs/PRD-TEMPLATE.md) into `CONTEXT.md` and fill it in.
 2. Follow [docs/llm-authoring-guide.md](docs/llm-authoring-guide.md): write the
-   `controllers/strategies.py` algorithm first, reuse the `handlers/` adapters,
-   add `handlers/adapters/<vendor>/` only if you need a new vendor, compose in
+   `controllers/strategies.py` algorithm first, reuse the `handlers/interfaces/`
+   adapters, add `factories/<vendor>/` only if you need a new vendor, compose in
    `main.py`, add tests.
 3. Run the Definition-of-Done checks below.
 
@@ -231,9 +234,9 @@ src/
 ├── requirements.txt               Runtime deps (requests>=2.32)
 ├── models/                        M — kpi, parameters, topology, intent, health
 ├── controllers/                   C — kpi_controller, health, strategies
-├── handlers/                      O-RAN adapters: a1 e2 o1 r1 teiv ves vendor
-│   └── adapters/                  Proprietary vendor adapters: ericsson/ nokia/
-├── factories/                     Abstract Factory: mock / osc / physical
+├── handlers/                      O-RAN standard interfaces only
+│   └── interfaces/                a1 e2 o1 r1 teiv ves
+├── factories/                     Abstract Factory: mock / osc / physical + ericsson / nokia
 ├── views/                         V — http (health/stats) + grafana dashboards
 └── config/                        settings.py (RAPP_* env vars) + logging.py
 ```

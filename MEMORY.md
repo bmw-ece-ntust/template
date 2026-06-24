@@ -5,6 +5,40 @@
 
 ---
 
+### 2026/06/24 (session 9) — Single-axis refactor: handlers/interfaces + per-vendor factories
+
+**Duration**: 2026/06/24: 09.12 – 09.58
+
+- **Goal restated by user:** a well-structured OSC rApp implementing OOP + MVC +
+  multi-vendor, with the factory following refactoring.guru Abstract Factory.
+- **Removed duplication:** deleted orphaned `src/core/` and `src/rapp/` (stale
+  `__pycache__` only, no live source) — the real source lives under `src/`.
+- **Resolved the axis question:** vendor and platform are NOT orthogonal. On the
+  `osc` path ICS delivers telemetry already in 3GPP names (no vendor translation);
+  proprietary names only appear when reading a vendor management plane directly.
+  So vendor is a *sub-case of platform*. Reversed the earlier "two orthogonal
+  axes" decision (session 8) → **one axis** `RAPP_PLATFORM = mock | osc | physical
+  | ericsson | nokia`.
+- **`handlers/` is O-RAN-standard only:** `git mv` the six interface adapters into
+  `handlers/interfaces/` (a1 e2 o1 r1 teiv ves). Deleted `handlers/adapters/` +
+  `handlers/vendor.py` (removed `VendorAdapter` ABC + registry `get_vendor_adapter`,
+  `VendorTelemetryClient`, dead `GnbTelemetryAdapter`).
+- **Each vendor is its own concrete Abstract Factory:** `factories/ericsson/` and
+  `factories/nokia/` each carry their proprietary `*Param` enum + `*_PARAM_MAP`
+  (`VendorParameterMap`) + `ScenarioRunner`/`TelemetryCollector`/`KpiAnalyzer`/
+  `PlatformFactory`. The Adapter (proprietary → `ThreeGPPKpi`) lives inside the
+  analyzer; `VendorParameterMap` stays in `models/parameters.py` (pure data).
+- Wired `ericsson`/`nokia` into `main._build_factory` + `--platform` choices; added
+  `RAPP_EMS_BASE_URL` (`Settings.ems_base_url`). Rewrote `tests/test_vendor_adapters.py`
+  (analyzers + `_build_factory` resolution, no network) and the Ericsson example.
+- Updated all docs to the new layout: `CLAUDE.md` (Rules 4 & 6, layout tree,
+  authoritative note), `CONTEXT.md` (layer table, interface table, class index,
+  changelog), `README.md` (capabilities, env vars, platforms, prune table, tree),
+  `docs/llm-authoring-guide.md`, `docs/PRD-TEMPLATE.md`, `docs/sop-review.md`,
+  `docs/osc-reference-study.md`, `TODO.md`.
+- Verified (pytest/graphify unavailable in env): 19/19 import smoke OK, examples
+  run, 14/14 touched tests pass via a minimal shim.
+
 ### 2026/06/15 (session 8) — Strategy selection + ES guardrails
 
 **Duration**: 2026/06/15: 15.08 – 19.17

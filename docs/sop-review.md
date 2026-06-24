@@ -39,7 +39,7 @@ reviewer diligence.
 | 4 | No modern packaging | Section 5 shows only `requirements.txt`. Add `pyproject.toml` (PEP 621) with pinned deps, dev extras, and tool config; pin runtime deps for reproducible handover. |
 | 5 | Weak testing mandate | Section 5 lists a `tests/` folder but Section gives no testing rules. Add: unit tests for pure logic, a coverage floor, and integration delegated to the TA rApp. |
 | 6 | No 3GPP enum rule | Section 8 mandates naming + linking but allows raw string literals. Mandate a `ThreeGPPKpi`-style enum so counters are typo-proof and testable. |
-| 7 | Vendor adapters under-specified | Section 3.1 shows one `GnbTelemetryAdapter`. For multi-vendor O-RAN, prescribe `handler/adapters/<vendor>/` with a proprietary-parameter enum + a `VendorParameterMap` to `ThreeGPPKpi`. |
+| 7 | Vendor adapters under-specified | Section 3.1 shows one `GnbTelemetryAdapter`. For multi-vendor O-RAN, prescribe a per-vendor Abstract Factory `factories/<vendor>/` (selected by `RAPP_PLATFORM`) with a proprietary-parameter enum + a `VendorParameterMap` to `ThreeGPPKpi` inside its analyzer; keep `handlers/` O-RAN-standard only. |
 | 8 | No IBN / intent security | Add an optional section for contract-based Intent-Based Networking (RFC 9315): whitelist + expiry + HMAC validation before resolution. |
 | 9 | No Helm / packaging detail | Section 7.1 covers images but not chart structure. Add a Helm section: config/secret separation, `securityContext`, resource requests/limits, and CSAR/TOSCA onboarding for the rApp Manager. |
 

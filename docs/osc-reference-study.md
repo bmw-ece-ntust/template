@@ -72,7 +72,7 @@ Phases 4 to 6.
 > **Note on the descriptor:** xApps onboard to the Near-RT RIC via
 > `xapp-descriptor/config.json` and talk E2/A1 over the RMR message bus. rApps
 > onboard to the Non-RT RIC via R1/SME registration and ICS data subscription,
-> which this template already implements (`handlers/r1.py`). The
+> which this template already implements (`handlers/interfaces/r1.py`). The
 > equivalent rApp packaging artifact is a CSAR bundle consumed by
 > `rappmanager` (tracked in TODO under Later).
 
@@ -100,7 +100,7 @@ operational scaffolding that OSC proves is necessary for a real deployment.
 ## Concrete takeaways feeding the upgrade
 
 1. **E2 transport.** Every Near-RT RIC xApp uses `ricxappframe` + RMR. The
-   template's `E2Client` ABC (`handlers/e2.py`) should document
+   template's `E2Client` ABC (`handlers/interfaces/e2.py`) should document
    `ricxappframe.xapp_frame.RMRXapp` as the canonical concrete transport, so the
    E2 RMR TODO has a clear reference implementation (hw-python's
    `SubscriptionManager` + `_BaseHandler.register_callback`).

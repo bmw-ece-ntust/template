@@ -6,8 +6,8 @@ import json
 
 import pytest
 
-from handlers.a1 import A1Adapter
-from handlers.e2 import (
+from handlers.interfaces.a1 import A1Adapter
+from handlers.interfaces.e2 import (
     E2Client,
     E2ControlAck,
     E2ControlRequest,

@@ -63,9 +63,9 @@ evaluate(kpis) -> PolicyDecision:
 ## 7. Multi-vendor scope
 
 - **Vendors to support:** e.g. ericsson, nokia
-- **New proprietary parameters?** If yes, list them; they go in
-  `src/handlers/adapters/<vendor>/` with a proprietary enum +
-  `VendorParameterMap` → `ThreeGPPKpi`.
+- **New proprietary parameters?** If yes, list them; they go in a
+  `src/factories/<vendor>/` Abstract Factory (selected by `RAPP_PLATFORM`) with a
+  proprietary enum + `VendorParameterMap` → `ThreeGPPKpi` inside its analyzer.
 
 ## 8. Intent-Based Networking (optional)
 

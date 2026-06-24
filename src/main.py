@@ -7,6 +7,8 @@ Platforms
     ``mock``     — In-memory no-op components.  No external dependencies.
     ``osc``      — O-RAN SC Non-RT RIC (real or TA rApp simulation endpoint).
     ``physical`` — Physical gNB testbed with O-RAN management plane.
+    ``ericsson`` — Ericsson management plane (proprietary PM → 3GPP).
+    ``nokia``    — Nokia management plane (proprietary PM → 3GPP).
 
 Layout follows O-RAN SC nonrtric-rapp-healthcheck convention:
     runnable ``src/main.py`` with deps in ``src/requirements.txt``.
@@ -42,7 +44,7 @@ def parse_args(defaults: Settings) -> Settings:
     parser.add_argument(
         "--platform",
         default=defaults.platform,
-        choices=["mock", "osc", "physical"],
+        choices=["mock", "osc", "physical", "ericsson", "nokia"],
         help="Deployment platform (default: mock)",
     )
     parser.add_argument(
@@ -60,6 +62,7 @@ def parse_args(defaults: Settings) -> Settings:
         strategy=args.strategy,
         sme_base_url=defaults.sme_base_url,
         ics_base_url=defaults.ics_base_url,
+        ems_base_url=defaults.ems_base_url,
         callback_url=defaults.callback_url,
         cell_id=defaults.cell_id,
         intent_secret=defaults.intent_secret,
@@ -90,11 +93,28 @@ def _build_factory(settings: Settings) -> RAppPlatformFactory:
 
         return PhysicalPlatformFactory()
 
+    if settings.platform == "ericsson":
+        from factories.ericsson import EricssonPlatformFactory
+
+        return EricssonPlatformFactory(
+            ems_base_url=settings.ems_base_url or "http://enm:8080",
+            cell_id=settings.cell_id,
+        )
+
+    if settings.platform == "nokia":
+        from factories.nokia import NokiaPlatformFactory
+
+        return NokiaPlatformFactory(
+            ems_base_url=settings.ems_base_url or "http://netact:8080",
+            cell_id=settings.cell_id,
+        )
+
     if settings.platform == "mock":
         return MockPlatformFactory()
 
     raise ValueError(
-        f"Unknown RAPP_PLATFORM={settings.platform!r}. Valid values: mock, osc, physical."
+        f"Unknown RAPP_PLATFORM={settings.platform!r}. "
+        "Valid values: mock, osc, physical, ericsson, nokia."
     )
 
 

@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from controllers.strategies import ThresholdBasedStrategy
 from factories.mock import MockPlatformFactory
-from handlers.a1 import A1Adapter
+from handlers.interfaces.a1 import A1Adapter
 from models import PolicyDecision
 from models.parameters import ThreeGPPKpi
 
