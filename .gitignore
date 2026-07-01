@@ -19,12 +19,12 @@ docs/_build/
 *.egg-info/
 
 # Generated knowledge graph (regenerate with `graphify update .`)
-graphify-out/
 
 # Local, per-machine Claude Code settings (never commit)
-.claude/settings.local.json
 
 # macOS
-.DS_Store.claude/model-policy.state.json
+
+# claude preference: personal/machine config + generated graph stay local
+.claude/
+graphify-out/
 .DS_Store
-.claude/model-policy.state.json
