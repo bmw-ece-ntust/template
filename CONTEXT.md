@@ -65,6 +65,7 @@ before reading raw source files.
 | Strategy selection (`RAPP_STRATEGY` + `make_strategy`) + `KpiController` Context (`set_strategy`) | ✅ | 2026-06-15 | config-selected like platform/vendor; removed dead `threshold_high` |
 | `requirements-dev.txt` + "copy-and-rename" new-rApp guide + ES/WG1 guardrails | ✅ | 2026-06-15 | README anti-confusion notes for LLM-driven generation |
 | Single-axis refactor: `handlers/interfaces/` (O-RAN only) + per-vendor Abstract Factories | ✅ | 2026-06-24 | vendor folded into `RAPP_PLATFORM` (`factories/ericsson`, `factories/nokia`); dropped `handlers/adapters/` + `handlers/vendor.py` |
+| refactoring.guru refs in all pattern modules + State Machine Diagrams (lifecycle, per-cell) | ✅ | 2026-07-07 | CONTEXT.md, PRD-TEMPLATE, SOP research.md + programming.md updated |
 | E2Client RMR/gRPC implementation | ⏳ | TBD | Requires OSC xapp-frame-py (`ricxappframe`) |
 | VES push-receiver HTTP endpoint | ⏳ | TBD | Wire to FastAPI route |
 | IntentResolutionService.resolve() | ⏳ | TBD | Implement per use-case |
@@ -344,6 +345,58 @@ classDiagram
     RAppPlatformFactory <|-- MockPlatformFactory
     RAppPlatformFactory <|-- OscPlatformFactory
     RAppPlatformFactory <|-- PhysicalPlatformFactory
+```
+
+### Design pattern references
+
+The three BMW Lab SOP required patterns
+([programming.md Section 3](https://github.com/bmw-ece-ntust/SOP/blob/master/programming.md#3-design-patterns)),
+where each lives, and its refactoring.guru reference:
+
+| Pattern | Role in this template | Location | Reference |
+| --- | --- | --- | --- |
+| Adapter | O-RAN interface ↔ internal types; proprietary vendor keys → `ThreeGPPKpi` | `src/handlers/interfaces/*.py`; `factories/<vendor>/` KpiAnalyzer | <https://refactoring.guru/design-patterns/adapter> |
+| Abstract Factory | One factory per deployment environment / vendor, selected by `RAPP_PLATFORM` | `src/factories/` (`mock` `osc` `physical` `ericsson` `nokia`) | <https://refactoring.guru/design-patterns/abstract-factory> |
+| Strategy | Swappable optimization algorithm, selected by `RAPP_STRATEGY`; `KpiController` is the Context | `src/controllers/strategies.py`, `src/controllers/kpi_controller.py` | <https://refactoring.guru/design-patterns/strategy> |
+
+---
+
+## State Machine Diagram
+
+### rApp lifecycle (O-RAN WG2 rApp Manager)
+
+States an rApp instance traverses under the OSC rApp Manager
+(O-RAN.WG2.R1AP; OSC `nonrtric/plt/rappmanager`). `ScenarioRunner.start()` /
+`stop()` correspond to the instantiate / undeploy transitions.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Onboarded : rApp package upload (CSAR)
+    Onboarded --> Primed : prime (resources validated)
+    Primed --> Onboarded : deprime
+    Primed --> Instantiated : instantiate\nSME register + ICS subscribe
+    Instantiated --> Running : first ICS callback received
+    Running --> Running : control cycle\ncollect → analyze → decide → A1 push
+    Instantiated --> Primed : undeploy\nSME deregister
+    Running --> Primed : undeploy\nSME deregister
+    Onboarded --> [*] : delete package
+```
+
+### Per-cell decision states (PolicyDecision)
+
+Cell state as driven by `OptimizationStrategy.evaluate()` output; tracked in
+`NetworkTopology.set_active()` from O1 VES `cellStatusChange` events
+(TS 28.532 §5.2.6.2).
+
+```mermaid
+stateDiagram-v2
+    [*] --> ACTIVE : TEIV discovery\nNodeInfo.is_active = true
+    ACTIVE --> SLEEP : PolicyDecision.SLEEP\nDRB.PrbUtilDL < threshold_low
+    SLEEP --> ACTIVE : PolicyDecision.ACTIVE\nload recovers on neighbor cells
+    ACTIVE --> HANDOVER : PolicyDecision.HANDOVER\nUEs moved to neighbor
+    HANDOVER --> SLEEP : cell emptied → sleep
+    HANDOVER --> ACTIVE : handover abort / completion
+    SLEEP --> [*] : cell removed from topology
 ```
 
 ---

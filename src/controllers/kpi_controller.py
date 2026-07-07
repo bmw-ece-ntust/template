@@ -8,6 +8,10 @@ Ties the platform components (collector, analyzer from a
 
 The caller (``main.py``, or a scheduler) pushes the resulting
 :class:`~models.PolicyDecision` to the Near-RT RIC via an A1/E2 handler.
+
+Pattern reference
+    Strategy (this class is the *Context*):
+    https://refactoring.guru/design-patterns/strategy
 """
 
 from __future__ import annotations

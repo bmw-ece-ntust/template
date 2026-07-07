@@ -28,6 +28,9 @@ OSC reference
 
 Used by the OSC factory to register the rApp (SME) and subscribe to telemetry
 (ICS) on startup.
+
+Pattern reference
+    Adapter: https://refactoring.guru/design-patterns/adapter
 """
 
 from __future__ import annotations

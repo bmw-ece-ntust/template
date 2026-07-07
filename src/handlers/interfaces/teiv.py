@@ -14,6 +14,9 @@ and iterate over :meth:`~models.topology.NetworkTopology.active_cells`.
 
 OSC TEIV reference
     https://wiki.o-ran-sc.org/display/ORAN/Topology+Exposure+and+Inventory
+
+Pattern reference
+    Adapter: https://refactoring.guru/design-patterns/adapter
 """
 
 from __future__ import annotations

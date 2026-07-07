@@ -23,6 +23,9 @@ OSC reference
     https://gerrit.o-ran-sc.org/r/gitweb?p=nonrtric/plt/rappmanager.git
 
 Used by controllers to read and patch cell YANG configuration over O1.
+
+Pattern reference
+    Adapter: https://refactoring.guru/design-patterns/adapter
 """
 
 from __future__ import annotations

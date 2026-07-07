@@ -9,4 +9,6 @@ template's internal value objects.  No proprietary vendor logic appears here.
 - :mod:`handlers.interfaces.r1`   — R1 SME lifecycle + ICS data subscription
 - :mod:`handlers.interfaces.teiv` — TEIV topology discovery
 - :mod:`handlers.interfaces.ves`  — inbound O1 VES events
+
+Reference: https://refactoring.guru/design-patterns/adapter
 """

@@ -83,6 +83,9 @@ evaluate(kpis) -> PolicyDecision:
 
 - [ ] Flowchart (main control loop)
 - [ ] Class diagram (matches `src/` classes)
+- [ ] State machine diagram (after the class diagram: rApp lifecycle states
+      per O-RAN WG2 rApp Manager, plus per-cell `PolicyDecision` states —
+      see the two examples in `CONTEXT.md`)
 - [ ] Message Sequence Chart (per use case)
 
 ## 11. Evaluation

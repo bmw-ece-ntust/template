@@ -15,6 +15,9 @@ Reference
         https://www.3gpp.org/ftp/Specs/archive/28_series/28.532/28532-i50.zip
     ONAP VES Listener API 7.2:
         https://docs.onap.org/projects/onap-vnfsdk-model/en/latest/
+
+Pattern reference
+    Adapter: https://refactoring.guru/design-patterns/adapter
 """
 
 from __future__ import annotations

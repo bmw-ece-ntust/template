@@ -5,6 +5,41 @@
 
 ---
 
+### 2026/07/07 (session 10) — Pattern references + State Machine Diagrams (template + SOP)
+
+**Duration**: 2026/07/07: 23.18 – 23.30
+
+- **Review verdict:** structure is already the target industry shape (MVC +
+  handlers, validated against OSC `ric-app-kpimon-go` in sessions 7–9); all
+  three SOP-required patterns (Adapter, Abstract Factory, Strategy) were
+  implemented, so this session completed the reference/documentation layer
+  rather than moving files.
+- Attached refactoring.guru references to every pattern module that lacked
+  one: the six `handlers/interfaces/*.py` Adapter docstrings + the package
+  `__init__`, and `KpiController` (Strategy *Context*). Factories and
+  `strategies.py` already had them.
+- Added a **Design pattern references** table to `CONTEXT.md` (pattern → role
+  → location → refactoring.guru link).
+- Added a **State Machine Diagram** section after the Class Diagram in
+  `CONTEXT.md`: (1) rApp lifecycle per O-RAN WG2 rApp Manager
+  (Onboarded → Primed → Instantiated → Running), mapped to
+  `ScenarioRunner.start()/stop()`; (2) per-cell `PolicyDecision` states
+  (ACTIVE / SLEEP / HANDOVER) tied to `NetworkTopology.set_active` + VES
+  `cellStatusChange`. Added the same checklist item to
+  `docs/PRD-TEMPLATE.md` Section 10.
+- **SOP repo** (`../SOP`): new `research.md` State Machine Diagram section
+  (guideline + two Mermaid examples matching the Energy Saving UC1–UC4),
+  TOC + IEEE-paper-mapping rows, `programming.md` Section 1 artifact table
+  gains "State Machine Diagram" as artifact 3 (parameters table now 4), and
+  the design-approval CAUTION now includes it.
+- **Gotcha fixed in SOP `research.md`:** the "adapter pattern design
+  programming" link (twice) pointed to the *abstract-factory* URL; replaced
+  with the three correct pattern links.
+- No `PRD.md` exists in the SOP repo — the user's "SOP/PRD.md" was mapped to
+  the template's `docs/PRD-TEMPLATE.md` (the fill-in PRD).
+- Verified: 27/27 module import smoke OK (pytest/ruff not installed in the
+  local venv — docstring-only code changes).
+
 ### 2026/06/24 (session 9) — Single-axis refactor: handlers/interfaces + per-vendor factories
 
 **Duration**: 2026/06/24: 09.12 – 09.58

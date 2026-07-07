@@ -26,6 +26,9 @@ OSC reference
 
 Used by controllers to push a :class:`~models.PolicyDecision` to the Near-RT
 RIC as an A1 policy.
+
+Pattern reference
+    Adapter: https://refactoring.guru/design-patterns/adapter
 """
 
 from __future__ import annotations

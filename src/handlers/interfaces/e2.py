@@ -32,6 +32,9 @@ O-RAN references
 
 OSC xApp-frame-py reference
     https://gerrit.o-ran-sc.org/r/ric-plt/xapp-frame-py
+
+Pattern reference
+    Adapter: https://refactoring.guru/design-patterns/adapter
 """
 
 from __future__ import annotations

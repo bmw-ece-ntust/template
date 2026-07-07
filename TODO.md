@@ -7,7 +7,15 @@
 
 ## Now
 
-_Nothing pending._
+- [x] Attach refactoring.guru references to every pattern module (six
+      `handlers/interfaces/` Adapters, `KpiController` Strategy Context) and
+      add a pattern-reference table to `CONTEXT.md`
+- [x] Add State Machine Diagrams (rApp lifecycle per O-RAN WG2 rApp Manager +
+      per-cell `PolicyDecision` states) after the class diagram in
+      `CONTEXT.md` and `docs/PRD-TEMPLATE.md`
+- [x] SOP repo: State Machine Diagram section in `research.md` (+ TOC + paper
+      mapping), artifact table row in `programming.md` Section 1, and fixed the
+      Adapter link that pointed to the Abstract Factory URL
 
 ## Next
 
@@ -19,7 +27,7 @@ _Nothing pending._
 - [ ] Wire VES push-receiver endpoint to the HTTP server (`VesEventAdapter.dispatch()`)
 - [ ] Implement a NVIDIA NIM REST client (injected as the `nim_infer` callable) for `NvidiaModelStrategy` — not under `handlers/` (O-RAN-only)
 - [ ] Add an `xapp-descriptor/config.json` (RMR tx/rx) for the xApp onboarding profile
-- [ ] Add rApp lifecycle state machine (onboard → prime → instantiate → running) per O-RAN WG2
+- [ ] Implement the rApp lifecycle state machine in code (onboard → prime → instantiate → running) per O-RAN WG2 — diagrams added to CONTEXT.md 2026/07/07
 - [ ] Add `RAPP_PLATFORM=osc` integration test against VIAVI TA rApp endpoints
 - [ ] Migrate HTTP server from stdlib `BaseHTTPRequestHandler` to FastAPI + uvicorn
 - [ ] Publish Sphinx HTML (ReadTheDocs or GitHub Pages) from CI

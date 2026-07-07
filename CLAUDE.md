@@ -41,7 +41,7 @@ Read and maintain all four files every session:
 | File | Purpose |
 | --- | --- |
 | `CLAUDE.md` | Behavior rules + static snapshot. Never log activity here. |
-| `CONTEXT.md` | Full PRD (architecture, MSC, class diagram, system parameters). |
+| `CONTEXT.md` | Full PRD (architecture, MSC, class diagram, state machine, system parameters). |
 | `MEMORY.md` | Append-only session log. |
 | `TODO.md` | Now / Next / Later task list. |
 
@@ -181,7 +181,7 @@ src/
 ### Documentation
 
 - `README.md` = Getting Started + user guide (quick start, config, deploy, endpoints).
-- `CONTEXT.md` = full PRD (architecture, MSC, class diagram, system parameters).
+- `CONTEXT.md` = full PRD (architecture, MSC, class diagram, state machine, system parameters).
 - `docs/PRD-TEMPLATE.md` = fill-in PRD for a new rApp (design contract).
 - `docs/llm-authoring-guide.md` = PRD → rApp generation workflow for LLMs.
 - `docs/osc-reference-study.md` = OSC reference-app structure survey.
