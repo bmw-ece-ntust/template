@@ -1,25 +1,35 @@
-"""ns-3 simulation platform — guidance stub.
+"""ns-3 platform factory — ns-O-RAN KPM naming → 3GPP ``KpiReport``.
 
-For ns-3 simulation, use :class:`factories.osc.OscPlatformFactory` pointed at
-the O-RAN interfaces provided by ns-O-RAN or the BMW Lab TA rApp:
+Selected via ``RAPP_PLATFORM=ns3``.  ns-O-RAN exposes ns-3 simulated gNBs
+through standard O-RAN interfaces, so this factory reuses the OSC SME/ICS
+transport and swaps in only the Adapter: :class:`Ns3KpiAnalyzer` translates
+ns-O-RAN measurement names (``RRU.PrbUsedDl``, ``L3servingSINR``, …) to
+spec-traceable :class:`~models.parameters.ThreeGPPKpi` via
+:data:`NS3_PARAM_MAP`, so the rApp core never sees simulator names.
 
-    factory = OscPlatformFactory(
-        sme_base_url=os.environ["RAPP_SME_BASE_URL"],   # TA rApp / ns-O-RAN endpoint
-        ics_base_url=os.environ["RAPP_ICS_BASE_URL"],
-        ...
-    )
+Simulation lifecycle is orchestrated by the BMW Lab TA rApp
+(github.com/bmw-ece-ntust/nonrtric-rapp-test-automation); the rApp itself
+communicates only through O-RAN ALLIANCE protocols.
 
-Rationale
-    The generic rApp communicates exclusively through O-RAN ALLIANCE protocols
-    (O1/A1/R1/E2).  ns-3 simulation lifecycle (start/stop scenarios,
-    configure UE mobility) is orchestrated by the BMW Lab TA rApp
-    (github.com/bmw-ece-ntust/nonrtric-rapp-test-automation), which exposes
-    O-RAN standard interfaces toward the rApp and ns-3 / VIAVI proprietary
-    APIs on the other side.  The rApp never calls simulator APIs directly.
+One class per module (SOP programming.md Section 5.1); this package
+re-exports the public API so callers keep writing
+``from factories.ns3 import Ns3Param, Ns3PlatformFactory``.
 
-TA rApp
-    https://github.com/bmw-ece-ntust/nonrtric-rapp-test-automation
-
-ns-O-RAN (ns-3 E2 node integration)
-    https://openrangym.com/ran-frameworks/ns-o-ran
+References
+    Abstract Factory: https://refactoring.guru/design-patterns/abstract-factory
+    Adapter:          https://refactoring.guru/design-patterns/adapter
+    ns-O-RAN:         https://openrangym.com/ran-frameworks/ns-o-ran
 """
+
+from __future__ import annotations
+
+from factories.ns3.factory import Ns3PlatformFactory
+from factories.ns3.kpi_analyzer import Ns3KpiAnalyzer
+from factories.ns3.params import NS3_PARAM_MAP, Ns3Param
+
+__all__ = [
+    "NS3_PARAM_MAP",
+    "Ns3KpiAnalyzer",
+    "Ns3Param",
+    "Ns3PlatformFactory",
+]

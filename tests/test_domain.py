@@ -10,8 +10,8 @@ from models.topology import NetworkTopology, NodeInfo
 
 def test_topology_add_get_remove() -> None:
     topo = NetworkTopology()
-    topo.add(NodeInfo("cell-0", "gnb-1", "ericsson"))
-    assert topo.get("cell-0").vendor_id == "ericsson"
+    topo.add(NodeInfo("cell-0", "gnb-1", "viavi"))
+    assert topo.get("cell-0").vendor_id == "viavi"
     topo.remove("cell-0")
     assert topo.get("cell-0") is None
     topo.remove("missing")  # no-op must not raise
@@ -19,7 +19,7 @@ def test_topology_add_get_remove() -> None:
 
 def test_topology_filters_by_type_and_active_state() -> None:
     topo = NetworkTopology()
-    topo.add(NodeInfo("cell-0", "gnb-1", "ericsson", NodeType.GNB))
+    topo.add(NodeInfo("cell-0", "gnb-1", "viavi", NodeType.GNB))
     topo.add(NodeInfo("ap-1", "ap-cluster", "aruba", NodeType.WIFI_AP))
     topo.set_active("cell-0", active=False)
     assert {n.cell_id for n in topo.cells()} == {"cell-0", "ap-1"}

@@ -9,22 +9,26 @@ in `requirements.txt` (O-RAN SC `nonrtric-rapp-healthcheck` convention).
 controller + protocol handlers + models*. This template follows the same shape,
 adding a typed/tested/documented structure:
 
+One top-level class per module (SOP programming.md Section 5.1): packages
+below list their classes; each class lives in its own `snake_case` file and
+the package `__init__.py` only re-exports.
+
 ```text
-main.py          Composition root: select platform factory, run control loop, serve HTTP
+main.py          Composition root: RAPP_PLATFORM → factory table, control loop, HTTP
 models/          M — data only, no I/O
-  kpi.py           KpiReport, PolicyDecision, KpiReport.from_3gpp
-  parameters.py    ThreeGPPKpi, NodeType, VendorParameterMap
-  topology.py      NodeInfo, NetworkTopology
-  intent.py        IntentContract, IntentType, IntentResolutionService
+  kpi/             KpiReport (+ from_3gpp), PolicyDecision
+  parameters/      ThreeGPPKpi, NodeType, VendorParameterMap
+  topology/        NodeInfo, NetworkTopology
+  intent/          IntentContract, IntentType, IntentResolutionService, …
   health.py        Health
 controllers/     C — orchestration + algorithms
   kpi_controller.py  KpiController: collect → analyze → decide
   health.py          HealthService + get_health_payload
-  strategies.py      OptimizationStrategy (Threshold / ML / Nvidia)  ← Strategy pattern
-handlers/        O-RAN + vendor I/O boundary  ← Adapter pattern
-  a1.py e2.py o1.py r1.py teiv.py ves.py vendor.py
-  adapters/        proprietary per-vendor: ericsson/ nokia/
-factories/       mock / osc / physical component creators  ← Abstract Factory
+  strategies/        OptimizationStrategy (Threshold / EnergySaving / ML / Nvidia)  ← Strategy pattern
+handlers/        O-RAN STANDARD interfaces only  ← Adapter pattern
+  interfaces/      a1/ e2/ o1/ r1/ teiv/ ves/
+factories/       osc (3GPP) + ns3 / viavi / oai / ocudu  ← Abstract Factory
+                 vendor packages: params.py (enum + map), kpi_analyzer.py (Adapter), factory.py
 views/           V — how state is surfaced
   http/            health/stats HTTP endpoints
   grafana/         dashboard JSON for the SMO Grafana

@@ -98,26 +98,27 @@ The TA rApp then:
 
 ## Local unit testing (no TA rApp required)
 
-Use `RAPP_PLATFORM=mock` to run the rApp locally against in-memory fixtures:
+Drive any analyzer with canned data — analyzers are pure classes, and
+`tests/conftest.FakeTelemetryCollector` stands in for the network:
 
 ```bash
-RAPP_PLATFORM=mock python src/main.py
+PYTHONPATH=src python -m examples.threshold_energy_saving_rapp
 ```
 
 Or in pytest:
 
 ```python
-from factories.mock import MockPlatformFactory
+from conftest import FakeTelemetryCollector
+from factories.osc import OscKpiAnalyzer
 
-factory = MockPlatformFactory(fixture={"DRB.PrbUtilDL": 0.85})
-collector = factory.create_telemetry_collector()
-analyzer  = factory.create_kpi_analyzer()
+collector = FakeTelemetryCollector({"DRB.PrbUtilDL": 0.85})
+analyzer  = OscKpiAnalyzer("cell-0")
 report    = analyzer.analyze(collector.collect())
 assert report.prb_util_dl == 0.85
 ```
 
-The mock factory requires zero external dependencies and covers the full
-optimization logic path (`TelemetryCollector → KpiAnalyzer → OptimizationStrategy → PolicyDecision`).
+This requires zero external dependencies and covers the full optimization
+logic path (`TelemetryCollector → KpiAnalyzer → OptimizationStrategy → PolicyDecision`).
 
 ---
 

@@ -31,13 +31,14 @@ generation is a fill-in-the-slots exercise rather than open-ended design:
    answers a structure question.
 2. **Validate the PRD.** Confirm every input parameter in PRD Section 4 is spec
    linked. If a counter is not in `ThreeGPPKpi`, add it to
-   `models/parameters.py` first, with the TS link + section + page.
+   `models/parameters/three_gpp_kpi.py` first, with the TS link + section + page.
 3. **Core first (Strategy + models).** Implement the algorithm as a
    `OptimizationStrategy` subclass. Pure logic, no I/O, no framework imports.
 4. **Wire adapters, never reimplement them.** Reuse the existing
    `handlers/interfaces/*` adapters for O1/A1/E2/R1/VES/TEIV. For a new vendor,
    add a `factories/<vendor>/` Abstract Factory following
-   `factories/ericsson/__init__.py`.
+   `factories/viavi/` (subclass `OscPlatformFactory`, override only
+   `create_kpi_analyzer()`).
 5. **Compose in `main.py`.** Route `RAPP_PLATFORM` to the right factory; build
    the strategy and adapters; run the control loop.
 6. **Tests for every pure unit.** Add `tests/test_*.py` covering the strategy,
@@ -73,7 +74,7 @@ mypy src
 pytest                          # 80% floor on models + controllers
 sphinx-build -b html docs docs/_build/html -W
 helm lint helm/template-app && helm template rapp helm/template-app --set secrets.RAPP_INTENT_SECRET=x
-RAPP_PLATFORM=mock PYTHONPATH=src python src/main.py   # then curl :8080/health
+PYTHONPATH=src python -m examples.threshold_energy_saving_rapp   # network-free smoke run
 graphify update .               # refresh the knowledge graph (free, AST-only)
 ```
 

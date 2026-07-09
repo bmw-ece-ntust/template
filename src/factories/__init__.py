@@ -5,101 +5,55 @@ environment.  The rApp core logic calls factory methods and never references
 concrete classes directly, so environments are swapped by changing
 ``RAPP_PLATFORM`` in the environment — no code changes required.
 
-Deployment environments
-    ``mock``     — :class:`factories.mock.MockPlatformFactory`
-                   In-memory no-op components; no external dependencies.
-                   Default for unit tests and developer laptops.
+Deployment platforms
+    ``osc``   — :class:`factories.osc.OscPlatformFactory`
+                Real O-RAN interfaces (ICS, SME, O1/SDNC) with pure 3GPP
+                counter names; no vendor translation.  Default.
 
-    ``osc``      — :class:`factories.osc.OscPlatformFactory`
-                   Real O-RAN interfaces (ICS, SME, O1/SDNC).
-                   Used for both simulation (pointed at VIAVI RSG O-RAN layer
-                   via BMW Lab TA rApp) and production OSC deployments.
+    ``ns3``   — :class:`factories.ns3.Ns3PlatformFactory`
+                ns-3 simulation via ns-O-RAN; OSC transport plus the
+                ns-O-RAN naming Adapter.
 
-    ``physical`` — :class:`factories.physical.PhysicalPlatformFactory`
-                   Real gNB testbed with O-RAN SC or vendor management plane.
+    ``viavi`` — :class:`factories.viavi.ViaviPlatformFactory`
+                VIAVI RIC Test (RSG); OSC transport plus the VIAVI naming
+                Adapter (includes PEE energy counters).
+
+    ``oai``   — :class:`factories.oai.OaiPlatformFactory`
+                OpenAirInterface gNBs via FlexRIC; OSC transport plus the
+                OAI naming Adapter.
+
+    ``ocudu`` — :class:`factories.ocudu.OcuduPlatformFactory`
+                Linux Foundation OCUDU (srsRAN-lineage CU/DU); OSC transport
+                plus the OCUDU naming and unit Adapter.
+
+Vendor factories subclass :class:`factories.osc.OscPlatformFactory` and
+override only ``create_kpi_analyzer()``: every supported stack speaks
+standard O-RAN interfaces, so vendors differ solely in the parameter
+Adapter, never in transport.
 
 Simulator note
-    Simulation (ns-3, VIAVI RSG) is orchestrated by the BMW Lab TA rApp
-    (github.com/bmw-ece-ntust/nonrtric-rapp-test-automation).
+    Simulation lifecycle (ns-3, VIAVI RSG) is orchestrated by the BMW Lab
+    TA rApp (github.com/bmw-ece-ntust/nonrtric-rapp-test-automation).
     The generic rApp communicates only through O-RAN ALLIANCE protocols
     (O1/A1/R1/E2) — it never calls simulator APIs directly.
+
+One class per module (SOP programming.md Section 5.1); this package
+re-exports the public API so callers keep writing
+``from factories import RAppPlatformFactory``.
 
 Reference: https://refactoring.guru/design-patterns/abstract-factory
 """
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from factories.kpi_analyzer import KpiAnalyzer
+from factories.platform_factory import RAppPlatformFactory
+from factories.scenario_runner import ScenarioRunner
+from factories.telemetry_collector import TelemetryCollector
 
-if TYPE_CHECKING:
-    from models import KpiReport
-
-
-class ScenarioRunner(ABC):
-    """Controls the rApp lifecycle (register with SME, subscribe ICS, start)."""
-
-    @abstractmethod
-    def start(self) -> None:
-        """Start the scenario / register lifecycle."""
-
-    @abstractmethod
-    def stop(self) -> None:
-        """Stop the scenario / deregister lifecycle."""
-
-
-class TelemetryCollector(ABC):
-    """Collects raw PM counter data from the platform."""
-
-    @abstractmethod
-    def collect(self) -> dict[str, float]:
-        """Collect raw telemetry.
-
-        :return: ``{ThreeGPPKpi.value: float}`` mapping.
-        """
-
-
-class KpiAnalyzer(ABC):
-    """Converts raw PM data into a standardized :class:`~models.KpiReport`."""
-
-    @abstractmethod
-    def analyze(self, raw: dict[str, float]) -> KpiReport:
-        """Map raw platform metrics to a standardized KPI report.
-
-        :param raw: Raw metrics from :class:`TelemetryCollector`.
-        :return: :class:`~models.KpiReport`.
-        """
-
-
-class RAppPlatformFactory(ABC):
-    """Abstract factory for deployment-environment-specific rApp components.
-
-    :Example:
-
-        >>> factory = MockPlatformFactory()
-        >>> runner   = factory.create_scenario_runner()
-        >>> collector = factory.create_telemetry_collector()
-        >>> analyzer  = factory.create_kpi_analyzer()
-        >>> runner.start()
-    """
-
-    @abstractmethod
-    def create_scenario_runner(self) -> ScenarioRunner:
-        """Create a :class:`ScenarioRunner` for this environment.
-
-        :return: :class:`ScenarioRunner` implementation.
-        """
-
-    @abstractmethod
-    def create_telemetry_collector(self) -> TelemetryCollector:
-        """Create a :class:`TelemetryCollector` for this environment.
-
-        :return: :class:`TelemetryCollector` implementation.
-        """
-
-    @abstractmethod
-    def create_kpi_analyzer(self) -> KpiAnalyzer:
-        """Create a :class:`KpiAnalyzer` for this environment.
-
-        :return: :class:`KpiAnalyzer` implementation.
-        """
+__all__ = [
+    "KpiAnalyzer",
+    "RAppPlatformFactory",
+    "ScenarioRunner",
+    "TelemetryCollector",
+]

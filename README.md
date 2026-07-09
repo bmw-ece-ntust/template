@@ -18,7 +18,7 @@ deployment factories.
 | --- | --- |
 | MVC layers (models / controllers / views) | `src/models/`, `src/controllers/`, `src/views/` |
 | O-RAN standard interface adapters (O1/A1/E2/R1/TEIV/VES) | `src/handlers/interfaces/` |
-| Multi-vendor proprietary factories (Ericsson, Nokia) | `src/factories/<vendor>/` |
+| Multi-vendor factories (ns-3, VIAVI, OAI, OCUDU) | `src/factories/<vendor>/` |
 | Spec-traceable 3GPP KPI enum | `src/models/parameters.py` (`ThreeGPPKpi`) |
 | Strategy / Abstract-Factory / Adapter patterns | `controllers/strategies.py`, `factories/`, `handlers/interfaces/` |
 | Contract-based Intent (IBN) with HMAC validation | `src/models/intent.py` |
@@ -36,10 +36,9 @@ deployment factories.
 git clone https://github.com/bmw-ece-ntust/nonrtric-rapp-template.git
 cd nonrtric-rapp-template
 
-# Run with the mock platform (no external dependencies)
+# Try the network-free examples first (no RIC required)
 pip install -r src/requirements.txt
-RAPP_PLATFORM=mock PYTHONPATH=src python src/main.py
-# then: curl http://localhost:8080/health
+PYTHONPATH=src python -m examples.threshold_energy_saving_rapp
 ```
 
 ```bash
@@ -50,12 +49,13 @@ export RAPP_ICS_BASE_URL=http://nonrtric:8083
 export RAPP_CALLBACK_URL=http://<this-pod-ip>:8080/r1/callback
 export RAPP_INTENT_SECRET=$(openssl rand -hex 32)
 PYTHONPATH=src python src/main.py
+# then: curl http://localhost:8080/health
 ```
 
 ```bash
 # Docker
 docker build -t rapp-template:latest .
-docker run -p 8080:8080 -e RAPP_PLATFORM=mock rapp-template:latest
+docker run -p 8080:8080 -e RAPP_PLATFORM=osc rapp-template:latest
 ```
 
 ```bash
@@ -71,9 +71,9 @@ helm install my-rapp helm/template-app \
 Network-free demos of the core data flow:
 
 ```bash
-PYTHONPATH=src python -m examples.threshold_energy_saving_rapp   # telemetry → strategy → A1 payload
-PYTHONPATH=src python -m examples.vendor_ericsson_adapter        # proprietary → ThreeGPPKpi → KpiReport
-PYTHONPATH=src python -m examples.intent_resolution             # signed intent contract validation
+PYTHONPATH=src python -m examples.threshold_energy_saving_rapp   # 3GPP telemetry → EnergySavingStrategy → A1 payload
+PYTHONPATH=src python -m examples.vendor_viavi_adapter           # VIAVI naming → ThreeGPPKpi → KpiReport (Adapter)
+PYTHONPATH=src python -m examples.intent_resolution              # signed intent contract validation
 ```
 
 ---
@@ -87,16 +87,15 @@ commit `.env`. In Kubernetes these map to the chart's `config:` (ConfigMap) and
 
 | Env var | Default | Description |
 | --- | --- | --- |
-| `RAPP_PLATFORM` | `mock` | `mock` / `osc` / `physical` / `ericsson` / `nokia` |
+| `RAPP_PLATFORM` | `osc` | `osc` / `ns3` / `viavi` / `oai` / `ocudu` |
 | `RAPP_STRATEGY` | `threshold` | Optimization algorithm (`make_strategy`) |
 | `RAPP_HOST` | `0.0.0.0` | Bind address |
 | `RAPP_PORT` | `8080` | Listen port |
 | `RAPP_SERVICE_NAME` | `template-app` | Service name in health payload |
-| `RAPP_SME_BASE_URL` | — | Non-RT RIC SME base URL (osc only) |
-| `RAPP_ICS_BASE_URL` | — | Non-RT RIC ICS base URL (osc only) |
-| `RAPP_EMS_BASE_URL` | — | Vendor EMS/NMS base URL (`ericsson` / `nokia` only) |
-| `RAPP_CALLBACK_URL` | — | This rApp's inbound callback URL (osc only) |
-| `RAPP_CELL_ID` | `cell-0` | Primary cell ID (osc only) |
+| `RAPP_SME_BASE_URL` | — | Non-RT RIC SME base URL |
+| `RAPP_ICS_BASE_URL` | — | Non-RT RIC ICS base URL |
+| `RAPP_CALLBACK_URL` | — | This rApp's inbound callback URL |
+| `RAPP_CELL_ID` | `cell-0` | Primary cell ID |
 | `RAPP_INTENT_SECRET` | — | HMAC secret for IBN intent contracts |
 
 ---
@@ -114,13 +113,22 @@ These are operational endpoints only. O-RAN traffic flows over O1/A1/E2/R1, not 
 
 ## Deployment Platforms
 
+All platforms share the same O-RAN transport (SME/ICS via the OSC factory);
+they differ only in the KPI-name Adapter their factory produces. Adding a
+vendor is one `factories/<vendor>/` package and one row in
+`main._FACTORY_BY_PLATFORM`.
+
 | `RAPP_PLATFORM` | Description | Use when |
 | --- | --- | --- |
-| `mock` | In-memory no-op, fixed KPI fixture | Unit tests, demos, CI, developer laptop |
-| `osc` | Live O-RAN interfaces via ICS/SME (telemetry already in 3GPP names) | Production OSC deployment or VIAVI simulation via the BMW Lab TA rApp |
-| `physical` | Physical gNB testbed | Real hardware experiments |
-| `ericsson` | Ericsson EMS/ENM management plane; proprietary PM → `ThreeGPPKpi` Adapter | Reading an Ericsson node's proprietary counters directly |
-| `nokia` | Nokia NetAct management plane; proprietary PM → `ThreeGPPKpi` Adapter | Reading a Nokia node's proprietary counters directly |
+| `osc` | Pure 3GPP counter names, no vendor translation (default) | Production OSC deployment or any stack already emitting TS 28.552 names |
+| `ns3` | ns-O-RAN measurement naming → `ThreeGPPKpi` Adapter | ns-3 simulation attached via ns-O-RAN / the BMW Lab TA rApp |
+| `viavi` | VIAVI RIC Test naming (incl. `PEE.*` energy counters) → `ThreeGPPKpi` Adapter | VIAVI RSG simulation via the BMW Lab TA rApp |
+| `oai` | OpenAirInterface / FlexRIC KPM naming → `ThreeGPPKpi` Adapter | OAI gNB testbed |
+| `ocudu` | OCUDU (srsRAN-lineage) metric naming + bit/s→kbps units → `ThreeGPPKpi` Adapter | Linux Foundation OCUDU CU/DU testbed |
+
+For unit tests there is no separate platform: pair
+`tests/conftest.FakeTelemetryCollector` with any analyzer (they are pure,
+network-free classes).
 
 **Simulation note:** Simulator lifecycle (start/stop VIAVI or ns-3 scenarios, UE
 mobility) is the responsibility of the BMW Lab TA rApp
@@ -154,7 +162,7 @@ so nothing misleads a reader (or an LLM):
 | --- | --- | --- |
 | **rApp** (Non-RT RIC) | `handlers/interfaces/{o1,a1,r1,teiv,ves}.py`, `factories/osc` | `handlers/interfaces/e2.py` (that is the xApp path) |
 | **xApp** (Near-RT RIC) | `handlers/interfaces/e2.py` | `handlers/interfaces/{r1,teiv}.py` if unused |
-| single vendor | one `factories/<vendor>/` | the other vendor example |
+| single vendor | one `factories/<vendor>/` | the other vendor packages (`ns3` / `viavi` / `oai` / `ocudu`) |
 | one algorithm | your `controllers/strategies.py` class | the strategy variants you don't use |
 
 > **rApp vs xApp:** an rApp emits **A1 policy** (or **O1** config) and lets the
@@ -213,11 +221,10 @@ template's structure compares to OSC reference apps.
 
 | Issue | Severity | Status | Workaround |
 | --- | --- | --- | --- |
-| E2 transport is a stub (no RMR/gRPC) | ℹ INFO | Pending | Use `mock`; implement `E2Client` ABC with `ricxappframe` RMR for your RIC |
+| E2 transport is a stub (no RMR/gRPC) | ℹ INFO | Pending | Drive analyzers with canned dicts (see `examples/`); implement `E2Client` ABC with `ricxappframe` RMR for your RIC |
 | VES push receiver not wired to HTTP server | ℹ INFO | Pending | ICS polling via `OscIcsTelemetryCollector` works as fallback |
-| `PhysicalPlatformFactory` raises `NotImplementedError` | ℹ INFO | Pending | Use `osc` for real deployments |
 | `IntentResolutionService.resolve()` raises `NotImplementedError` | ℹ INFO | Pending | Implement intent → PolicyDecision logic per use case |
-| Vendor proprietary maps are illustrative | ⚠ WARN | Open | Validate Ericsson/Nokia counter names against vendor PM references before production |
+| Vendor parameter maps are illustrative | ⚠ WARN | Open | Validate ns-O-RAN / VIAVI / OAI / OCUDU metric names against the deployed release before production |
 
 ---
 
@@ -236,7 +243,7 @@ src/
 ├── controllers/                   C — kpi_controller, health, strategies
 ├── handlers/                      O-RAN standard interfaces only
 │   └── interfaces/                a1 e2 o1 r1 teiv ves
-├── factories/                     Abstract Factory: mock / osc / physical + ericsson / nokia
+├── factories/                     Abstract Factory: osc (3GPP) + ns3 / viavi / oai / ocudu
 ├── views/                         V — http (health/stats) + grafana dashboards
 └── config/                        settings.py (RAPP_* env vars) + logging.py
 ```

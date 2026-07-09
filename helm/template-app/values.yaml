@@ -47,7 +47,7 @@ resources:
 config:
   RAPP_SERVICE_NAME: template-app
   RAPP_PORT: "8080"
-  RAPP_PLATFORM: mock
+  RAPP_PLATFORM: osc
   RAPP_STRATEGY: threshold
   RAPP_SME_BASE_URL: ""
   RAPP_ICS_BASE_URL: ""

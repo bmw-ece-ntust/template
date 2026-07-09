@@ -5,6 +5,48 @@
 
 ---
 
+### 2026/07/09 (session 11) — Vendor axis rebuilt: ns3 / viavi / oai / ocudu
+
+- **Scope decision (user):** vendors are now ns-3, VIAVI, OAI, OCUDU only;
+  `mock`, `physical`, `ericsson`, `nokia` factories deleted. `osc` stays as
+  the pure-3GPP default platform.
+- **Key design:** all four stacks expose standard O-RAN interfaces
+  (ns-O-RAN E2, VIAVI RIC Test, OAI/FlexRIC, OCUDU E2 agent), so each vendor
+  factory **subclasses `OscPlatformFactory` and overrides only
+  `create_kpi_analyzer()`** — vendors differ solely in the parameter Adapter,
+  never in transport. This keeps rule 1 (O-RAN protocols only) intact and
+  shrinks a vendor package to 4 files (`params.py`, `kpi_analyzer.py`,
+  `factory.py`, `__init__.py`).
+- `main._build_factory` is now table-driven (`_FACTORY_BY_PLATFORM`);
+  adding a vendor = one package + one row. CLI `--platform` choices derive
+  from the table. `Settings.ems_base_url` removed (no EMS polling path left).
+- Added PEE counters to `ThreeGPPKpi` (`PEE.AvgPower` TS 28.552
+  §5.1.1.19.2.1 p.64, `PEE.Energy` §5.1.1.19.3 p.65; verified against ETSI
+  TS 128 552) + `KpiReport.avg_power_w` / `energy_kwh` for the energy-saving
+  use case.
+- Teaching points built into the maps: `Viavi.QoS.Score` and
+  `DRB.PdcpSduVolumeDL` are deliberately **unmapped** (dropped by
+  `raw_to_standard`, never misread); `OcuduKpiAnalyzer` also rescales
+  bit/s → kbps (Adapter owns units, not just names). All maps carry
+  "illustrative — validate against deployed release" warnings.
+- Mock's test role moved to `tests/conftest.FakeTelemetryCollector`
+  (test doubles live in tests, not `src/`); `test_mock_factory.py` deleted;
+  `test_vendor_adapters.py` rewritten (4 vendors + platform routing
+  parametrized). Examples: `vendor_ericsson_adapter.py` →
+  `vendor_viavi_adapter.py`; `threshold_energy_saving_rapp.py` now drives
+  `EnergySavingStrategy` through `OscKpiAnalyzer` with canned ICS data.
+- **SOP check (user granted folder access):** one-class-per-file already
+  fully specified in `SOP/programming.md` Section 5.1 (incl. enum-per-file +
+  package re-export); no SOP change needed. Mirrored the rule into template
+  `CLAUDE.md` (Conventions + Architectural Rule 7).
+- Docs reconciled: CLAUDE.md (rules 4/6/7, layout), CONTEXT.md (class
+  diagram, pattern table, System Parameters + PEE rows, Key Symbols paths,
+  status row), README (platform table, examples, env vars), `src/README.md`,
+  `config/.env.example`.
+- Verified: examples run, all 5 platforms resolve + produce the right
+  analyzer, hand-rolled test runner green (pytest/PyPI unavailable in the
+  sandbox this session; Python 3.10 only — CI should re-run the real gates).
+
 ### 2026/07/07 (session 10) — Pattern references + State Machine Diagrams (template + SOP)
 
 **Duration**: 2026/07/07: 23.18 – 23.30

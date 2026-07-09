@@ -1,14 +1,17 @@
 """rApp / xApp composition root.
 
-Wires all layers and selects the deployment environment factory via
-``RAPP_PLATFORM`` (default: ``mock``).
+Wires all layers and selects the deployment platform factory via
+``RAPP_PLATFORM`` (default: ``osc``).
 
 Platforms
-    ``mock``     — In-memory no-op components.  No external dependencies.
-    ``osc``      — O-RAN SC Non-RT RIC (real or TA rApp simulation endpoint).
-    ``physical`` — Physical gNB testbed with O-RAN management plane.
-    ``ericsson`` — Ericsson management plane (proprietary PM → 3GPP).
-    ``nokia``    — Nokia management plane (proprietary PM → 3GPP).
+    ``osc``   — O-RAN SC Non-RT RIC; pure 3GPP counter names, no translation.
+    ``ns3``   — ns-3 simulation via ns-O-RAN (ns-O-RAN naming → 3GPP).
+    ``viavi`` — VIAVI RIC Test / RSG (VIAVI naming → 3GPP, incl. PEE).
+    ``oai``   — OpenAirInterface via FlexRIC (OAI naming → 3GPP).
+    ``ocudu`` — Linux Foundation OCUDU (metric naming + units → 3GPP).
+
+All platforms speak standard O-RAN interfaces; they differ only in the
+KPI-name Adapter their factory produces.
 
 Layout follows O-RAN SC nonrtric-rapp-healthcheck convention:
     runnable ``src/main.py`` with deps in ``src/requirements.txt``.
@@ -25,10 +28,25 @@ from controllers.health import HealthService
 from controllers.kpi_controller import KpiController
 from controllers.strategies import make_strategy
 from factories import RAppPlatformFactory
-from factories.mock import MockPlatformFactory
+from factories.ns3 import Ns3PlatformFactory
+from factories.oai import OaiPlatformFactory
+from factories.ocudu import OcuduPlatformFactory
+from factories.osc import OscPlatformFactory
+from factories.viavi import ViaviPlatformFactory
 from views.http.server import serve_http
 
 _log = logging.getLogger(__name__)
+
+#: ``RAPP_PLATFORM`` → factory class.  Every entry shares the OSC O-RAN
+#: transport constructor signature, so adding a vendor is one import and
+#: one row — never a new ``if`` branch.
+_FACTORY_BY_PLATFORM: dict[str, type[OscPlatformFactory]] = {
+    "osc": OscPlatformFactory,
+    "ns3": Ns3PlatformFactory,
+    "viavi": ViaviPlatformFactory,
+    "oai": OaiPlatformFactory,
+    "ocudu": OcuduPlatformFactory,
+}
 
 
 def parse_args(defaults: Settings) -> Settings:
@@ -44,8 +62,8 @@ def parse_args(defaults: Settings) -> Settings:
     parser.add_argument(
         "--platform",
         default=defaults.platform,
-        choices=["mock", "osc", "physical", "ericsson", "nokia"],
-        help="Deployment platform (default: mock)",
+        choices=sorted(_FACTORY_BY_PLATFORM),
+        help="Deployment platform (default: osc)",
     )
     parser.add_argument(
         "--strategy",
@@ -62,7 +80,6 @@ def parse_args(defaults: Settings) -> Settings:
         strategy=args.strategy,
         sme_base_url=defaults.sme_base_url,
         ics_base_url=defaults.ics_base_url,
-        ems_base_url=defaults.ems_base_url,
         callback_url=defaults.callback_url,
         cell_id=defaults.cell_id,
         intent_secret=defaults.intent_secret,
@@ -76,45 +93,19 @@ def _build_factory(settings: Settings) -> RAppPlatformFactory:
     :return: Configured :class:`~factories.RAppPlatformFactory`.
     :raises ValueError: If ``settings.platform`` is unrecognized.
     """
-    if settings.platform == "osc":
-        from factories.osc import OscPlatformFactory
-
-        return OscPlatformFactory(
-            sme_base_url=settings.sme_base_url or "http://nonrtric:8090",
-            ics_base_url=settings.ics_base_url or "http://nonrtric:8083",
-            service_name=settings.service_name,
-            instance_id=f"{settings.service_name}-01",
-            callback_url=settings.callback_url or f"http://localhost:{settings.port}/r1/callback",
-            cell_id=settings.cell_id,
+    factory_class = _FACTORY_BY_PLATFORM.get(settings.platform)
+    if factory_class is None:
+        raise ValueError(
+            f"Unknown RAPP_PLATFORM={settings.platform!r}. "
+            f"Valid values: {', '.join(sorted(_FACTORY_BY_PLATFORM))}."
         )
-
-    if settings.platform == "physical":
-        from factories.physical import PhysicalPlatformFactory
-
-        return PhysicalPlatformFactory()
-
-    if settings.platform == "ericsson":
-        from factories.ericsson import EricssonPlatformFactory
-
-        return EricssonPlatformFactory(
-            ems_base_url=settings.ems_base_url or "http://enm:8080",
-            cell_id=settings.cell_id,
-        )
-
-    if settings.platform == "nokia":
-        from factories.nokia import NokiaPlatformFactory
-
-        return NokiaPlatformFactory(
-            ems_base_url=settings.ems_base_url or "http://netact:8080",
-            cell_id=settings.cell_id,
-        )
-
-    if settings.platform == "mock":
-        return MockPlatformFactory()
-
-    raise ValueError(
-        f"Unknown RAPP_PLATFORM={settings.platform!r}. "
-        "Valid values: mock, osc, physical, ericsson, nokia."
+    return factory_class(
+        sme_base_url=settings.sme_base_url or "http://nonrtric:8090",
+        ics_base_url=settings.ics_base_url or "http://nonrtric:8083",
+        service_name=settings.service_name,
+        instance_id=f"{settings.service_name}-01",
+        callback_url=settings.callback_url or f"http://localhost:{settings.port}/r1/callback",
+        cell_id=settings.cell_id,
     )
 
 

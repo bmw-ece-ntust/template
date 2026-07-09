@@ -2,22 +2,19 @@
 
 from __future__ import annotations
 
+from conftest import FakeTelemetryCollector
 from controllers.health import HealthService, get_health_payload
 from controllers.kpi_controller import KpiController
 from controllers.strategies import MlBasedStrategy, ThresholdBasedStrategy
-from factories.mock import MockPlatformFactory
+from factories.osc import OscKpiAnalyzer
 from models import PolicyDecision
 from models.parameters import ThreeGPPKpi
 
 
 def _controller(prb: float) -> KpiController:
-    factory = MockPlatformFactory(
-        fixture={ThreeGPPKpi.DRB_PRB_UTIL_DL.value: prb},
-        cell_id="cell-x",
-    )
     return KpiController(
-        collector=factory.create_telemetry_collector(),
-        analyzer=factory.create_kpi_analyzer(),
+        collector=FakeTelemetryCollector({ThreeGPPKpi.DRB_PRB_UTIL_DL.value: prb}),
+        analyzer=OscKpiAnalyzer("cell-x"),
         strategy=ThresholdBasedStrategy(threshold_low=0.2),
     )
 

@@ -87,22 +87,33 @@ This project maintains a code knowledge graph at `graphify-out/` via the
    `ThreeGPPKpi.DRB_PRB_UTIL_DL.value`.
 
 4. **Every swappable axis is config-selected the same way.**  `RAPP_PLATFORM`
-   selects the deployment factory (`mock` / `osc` / `physical` / `ericsson` /
-   `nokia`) in `main._build_factory`; `RAPP_STRATEGY` selects the algorithm via
-   `controllers.strategies.make_strategy`.  Vendor support is a platform: each
-   vendor is its own Abstract Factory (`factories/<vendor>/`), not a separate
-   axis.  Never hard-code these in the composition root.  For VIAVI / ns-3
-   simulation, use `osc` pointed at the simulator's O-RAN interface endpoints
-   (`Ns3`/`Viavi` factories are stubs).
+   selects the deployment factory (`osc` / `ns3` / `viavi` / `oai` / `ocudu`)
+   via the `main._FACTORY_BY_PLATFORM` table; `RAPP_STRATEGY` selects the
+   algorithm via `controllers.strategies.make_strategy`.  Vendor support is a
+   platform: each vendor is its own Abstract Factory (`factories/<vendor>/`)
+   that subclasses `OscPlatformFactory` and overrides only
+   `create_kpi_analyzer()` — every supported stack speaks standard O-RAN
+   interfaces, so vendors differ solely in the parameter Adapter, never in
+   transport.  Adding a vendor is one package plus one table row, never a new
+   `if` branch.  `osc` is the pure-3GPP path (no translation) and the default.
 
 5. **IBN intent contract security.**  Always call
    `IntentResolutionService.validate()` before `resolve()`.
    Never skip whitelist, expiry, or HMAC signature checks.
 
-6. **Vendor parameter mapping is Adapter-pattern work.**  Proprietary vendor
-   keys must be mapped to `ThreeGPPKpi` via `VendorParameterMap` inside the
-   vendor platform factory (`factories/<vendor>/`, in its `KpiAnalyzer`) —
-   never in models, controllers, or the `handlers/interfaces/` O-RAN adapters.
+6. **Vendor parameter mapping is Adapter-pattern work.**  Vendor metric keys
+   (ns-O-RAN, VIAVI, OAI, OCUDU) must be declared in a per-vendor
+   `<Vendor>Param` enum and mapped to `ThreeGPPKpi` via `VendorParameterMap`
+   inside the vendor platform factory (`factories/<vendor>/params.py`, applied
+   by its `KpiAnalyzer`) — never in models, controllers, or the
+   `handlers/interfaces/` O-RAN adapters.  Unit conversion also belongs to the
+   vendor `KpiAnalyzer` (see `OcuduKpiAnalyzer` bit/s → kbps).
+
+7. **One top-level class per Python module** (SOP programming.md
+   Section 5.1).  Module named after its class in `snake_case`; enums and
+   exceptions count as classes; related classes group into a package whose
+   `__init__.py` only re-exports.  Test doubles live in `tests/conftest.py`,
+   not in `src/`.
 
 ---
 
@@ -131,25 +142,26 @@ helm/template-app/                 Helm chart for Kubernetes deployment
 tests/                             pytest suite (models, controllers, adapters)
 examples/                          Runnable end-to-end usage scripts
 src/
-├── main.py                        Composition root; RAPP_PLATFORM factory routing + control cycle
+├── main.py                        Composition root; _FACTORY_BY_PLATFORM table + control cycle
 ├── requirements.txt               requests>=2.32
-├── models/                        M — data only, no I/O
-│   ├── kpi.py                     KpiReport (11 3GPP fields), PolicyDecision, from_3gpp
-│   ├── parameters.py              ThreeGPPKpi enum, NodeType enum, VendorParameterMap
-│   ├── topology.py                NodeInfo, NetworkTopology
-│   ├── intent.py                  IntentContract, IntentType whitelist, IntentResolutionService
+├── models/                        M — data only, no I/O (one class per file; packages re-export)
+│   ├── kpi/                       kpi_report.py (KpiReport, from_3gpp), policy_decision.py
+│   ├── parameters/                three_gpp_kpi.py, node_type.py, vendor_parameter_map.py
+│   ├── topology/                  node_info.py, network_topology.py
+│   ├── intent/                    intent_contract.py, intent_type.py, intent_resolution_service.py, …
 │   └── health.py                  Health frozen dataclass
 ├── controllers/                   C — orchestration + algorithms
 │   ├── kpi_controller.py          KpiController (Context): collect → analyze → decide; set_strategy
 │   ├── health.py                  HealthService + get_health_payload
-│   └── strategies.py              OptimizationStrategy, Threshold/ML/Nvidia, make_strategy selector
+│   └── strategies/                optimization_strategy.py, threshold/energy_saving/ml/nvidia, selector.py
 ├── handlers/                      O-RAN STANDARD interfaces only (Adapter pattern)
-│   └── interfaces/                a1.py e2.py o1.py r1.py teiv.py ves.py
-├── factories/                     Abstract Factory: deployment + vendor selector (RAPP_PLATFORM)
-│   ├── mock/ osc/ physical/       standard environments (osc = 3GPP names, no vendor xlat)
-│   ├── ns3/ viavi/                simulation guidance stubs (use osc)
-│   ├── ericsson/                  EricssonParam enum + map + analyzer(Adapter) + factory
-│   └── nokia/                     NokiaParam enum + map + analyzer(Adapter) + factory
+│   └── interfaces/                a1/ e2/ o1/ r1/ teiv/ ves/
+├── factories/                     Abstract Factory: platform + vendor selector (RAPP_PLATFORM)
+│   ├── osc/                       3GPP names, no vendor xlat; SME/ICS transport (default)
+│   ├── ns3/                       Ns3Param enum + map + analyzer(Adapter) + factory
+│   ├── viavi/                     ViaviParam enum + map (incl. PEE) + analyzer(Adapter) + factory
+│   ├── oai/                       OaiParam enum + map + analyzer(Adapter) + factory
+│   └── ocudu/                     OcuduParam enum + map + analyzer(Adapter, units) + factory
 ├── views/                         V — health/stats HTTP + Grafana dashboards
 │   ├── http/                      api.py, server.py (health/stats only; NOT for O-RAN)
 │   └── grafana/                   rapp-kpi-dashboard.json + README (SMO Grafana)
@@ -164,10 +176,13 @@ src/
 
 - Python 3.12; `from __future__ import annotations` throughout.
 - Only runtime dep: `requests>=2.32`.
+- One top-level class per module (SOP programming.md Section 5.1); module
+  named after its class in `snake_case`; package `__init__.py` re-exports only.
 - Sphinx/RST docstrings with `:param:` and `:return:` (SOP Section 4).
 - Every 3GPP parameter must link to spec ZIP with section + page (SOP Section 8).
 - Frozen `dataclass` for immutable value objects; `Protocol` for port contracts.
-- `ThreeGPPKpi` enum for all 3GPP counter name references.
+- `ThreeGPPKpi` enum for all 3GPP counter name references; per-vendor
+  `<Vendor>Param` enums for vendor metric keys (no raw string literals).
 
 ### Git
 
