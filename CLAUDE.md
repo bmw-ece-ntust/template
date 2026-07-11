@@ -115,6 +115,26 @@ This project maintains a code knowledge graph at `graphify-out/` via the
    `__init__.py` only re-exports.  Test doubles live in `tests/conftest.py`,
    not in `src/`.
 
+8. **`handlers/smo/` exception for SMO test infrastructure only.**  Rule 2
+   holds for every product rApp/xApp.  A rApp that *is* SMO test
+   infrastructure (the TA rApp) may own direct SMO-service adapters, but they
+   live in a separate `handlers/smo/` package (InfluxDB window queries, DMS
+   deployment) so `handlers/interfaces/` stays O-RAN-standard only.  Realized
+   in <https://github.com/bmw-ece-ntust/nonrtric-rapp-test-automation>
+   (branch `refactor/sop-structure`); document the deviation in the repo's
+   PRD when applying it.
+
+9. **Lazy vendor/SDK imports inside adapters.**  Heavy or platform-specific
+   client libraries (`influxdb_client`, `kafka`, `ncclient`, vendor SDKs) are
+   imported inside the adapter method that uses them, never at module top
+   level — the `mock` platform and the unit-test suite must run with zero
+   vendor dependencies installed.
+
+10. **Mock adapters expose call counters.**  Every `factories/mock/` adapter
+    records lifecycle calls (`configure_calls`, `start_calls`, ...) so
+    efficiency-conformance tests can assert exact call counts (provision ×1,
+    probe ≤ retries, run loop 2×N) instead of only end-state.
+
 ---
 
 ## Project Overview
