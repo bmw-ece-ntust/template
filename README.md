@@ -123,8 +123,8 @@ graph TD
 
 > [!NOTE]
 > **Status Icons:**
-> - ✅ Completed successfully
-> - ⏳ In progress / Pending
+> - ✅ Completed successfully: **Add URL as evidence in Execution Status / Notes** 
+> - ⏳ In progress / Pending: **Summarize the status / problem in Execution Status / Notes**
 > - ❌ Error / Failed (with explanation)
 
 | Step                                  | Status | Timeline   | Execution Status / Notes |
@@ -133,8 +133,8 @@ graph TD
 | Define dataset / testbed plan         | ⏳     | YYYY-MM-DD |                          |
 | Implement rApp (optional)             |        | YYYY-MM-DD |                          |
 | Implement xApp (optional)             |        | YYYY-MM-DD |                          |
-| Containerize (Docker)                 | ✅     | 2026-02-03 | See docs/continerized.md |
-| Deploy (Helm)                         | ✅     | 2026-02-03 | See docs/continerized.md |
+| Containerize (Docker) | ✅ | 2026-02-03 | [docs/continerized.md](docs/continerized.md) |
+| Deploy (Helm)         | ✅ | 2026-02-03 | [docs/continerized.md](docs/continerized.md) |
 | Experiments + evaluation              |        | YYYY-MM-DD |                          |
 | Paper writing (figures/tables)        |        | YYYY-MM-DD |                          |
 
